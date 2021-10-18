@@ -4,6 +4,6 @@ class Network:
     def __init__(self, dims: Tuple[int, ...]):
         """
         params:
-           dims: is a tuple contaning dimensions of each layers
+           dims: is a tuple contaning dimensions of each layer
 
         """
