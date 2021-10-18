@@ -13,4 +13,13 @@ def sigmoid(input: np.ndarray):
     ones = [1.] * len(input)
     return np.divide(ones, np.add(ones, np.exp(-input)))
 
-activation_functions = { 'linear': linear, 'relu': relu, 'sigmoid':sigmoid}
+def tanh(input: np.ndarray):
+    """ Hyperbolic tangent function (TanH) """
+    return np.tanh(x)
+
+activation_functions = {
+    'linear': linear,
+    'relu': relu,
+    'sigmoid': sigmoid,
+    'tahn': tahn
+}
