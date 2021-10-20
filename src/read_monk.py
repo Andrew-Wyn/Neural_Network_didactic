@@ -1,4 +1,3 @@
-import pandas
 import pandas as pd
 
 def read_monk():
