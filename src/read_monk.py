@@ -1,19 +1,18 @@
 import pandas as pd
+import numpy as np
 
-def read_monk_1():
-    monk1_train = pd.read_csv('../datasets/Monks/monks-1.train', sep=' ')
-    monk1_test = pd.read_csv('../datasets/Monks/monks-1.test', sep=' ')
+from sklearn.preprocessing import OneHotEncoder
 
-    return monk1_train, monk1_test
+def read_monk(dataset_id):
+    col_names = ['a0', 'a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'Identifier']
+    train_ds = pd.read_csv(f"../datasets/Monks/monks-{dataset_id}.train", sep=' ', names=col_names)
+    train_ds.set_index('Identifier', inplace=True)
 
-def read_monk_2():
-    monk2_train = pd.read_csv('../datasets/Monks/monks-2.train', sep=' ')
-    monk2_test = pd.read_csv('../datasets/Monks/monks-1.test', sep=' ')
+    train_ds = train_ds.sample(frac=1)
+    labels = train_ds.pop('a0')
 
-    return monk2_train, monk2_test
+    train_ds = OneHotEncoder().fit_transform(train_ds).toarray().astype(np.float32)
 
-def read_monk_3():
-    monk3_train = pd.read_csv('../datasets/Monks/monks-3.train', sep=' ')
-    monk3_test = pd.read_csv('../datasets/Monks/monks-1.test', sep=' ')
+    labels = labels.to_numpy()[:, np.newaxis]
 
-    return monk3_train, monk3_test
+    return train_ds, labels
