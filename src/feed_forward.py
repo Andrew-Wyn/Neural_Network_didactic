@@ -166,10 +166,10 @@ class Network:
           old_deltas = self._apply_delta_weights(deltas, learning_rate, alpha, old_deltas)
           
         epoch_error = self.calculate_total_error(input, target)
-        epoch_accuracy = self.calculate_total_accuracy(input, target)
+        # epoch_accuracy = self.calculate_total_accuracy(input, target)
         print(i, epoch_error)
         history["loss"].append(epoch_error)
-        history["accuracy"].append(epoch_accuracy)
+        # history["accuracy"].append(epoch_accuracy)
       
       return history
 
