@@ -26,7 +26,7 @@ def read_cup():
 
     train_ds = train_ds.sample(frac=1)
     train = train_ds[['a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7', 'a8', 'a9', 'a10']].to_numpy()
-    labels = train_ds[['t1']].to_numpy()
+    labels = train_ds[['t1', 't2']].to_numpy()
 
     train = StandardScaler().fit_transform(train)
     

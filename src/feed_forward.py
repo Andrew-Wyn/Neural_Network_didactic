@@ -1,5 +1,6 @@
 import numpy as np
 
+import losses
 
 def linear(input: np.ndarray):
     """ linear activation function """
@@ -75,12 +76,18 @@ class Network:
       params:
           ...
       """
-
       
       self.input_dim = input_dim
       self.layers = layers
+
+      # handled by compile
+      self.loss = None
+      self.regularizer = None
     
-    def compile(self):
+    def compile(self, loss=None, regularizer=None):
+      self.loss = loss
+      self.regularizer = regularizer
+
       prev_dim = self.input_dim 
       for layer in self.layers:
         layer.initialize_weights(prev_dim)
@@ -98,7 +105,8 @@ class Network:
       # forward phase, calcolare gli output a tutti i livelli partendo dall'input (net, out)
       fw_out = self.forward_step(input)
 
-      dE_dO = -2*(target - fw_out) # last layer dE_dO modify based on the error function
+      
+      dE_dO = self.loss.derivate(target, fw_out) # -2*(target - fw_out) # last layer dE_dO modify based on the error function
       # dE_dO = -target/fw_out + (1-target)/(1-fw_out)
       # backward phase, calcolare i delta partendo dal livello di output
       dE_dO, gradient_w, gradient_b = self.layers[-1].backpropagate_delta(dE_dO)
@@ -114,30 +122,33 @@ class Network:
       if old_deltas:
         for i, (delta_w, delta_b) in enumerate(deltas):
           old_delta_w, old_delta_b = old_deltas[i]
-          deltas[i] = (learning_rate*delta_w + alpha*old_delta_w, learning_rate*delta_b + alpha*old_delta_b)
+          reg_w = self.regularizer.regularize(self.layers[i].weights_matrix)
+          reg_b = self.regularizer.regularize(self.layers[i].bias)
+          deltas[i] = (learning_rate*delta_w + alpha*old_delta_w + reg_w, learning_rate*delta_b + alpha*old_delta_b + reg_b)
       else:
         for i, (delta_w, delta_b) in enumerate(deltas):
-          deltas[i] = (learning_rate*delta_w, learning_rate*delta_b)
+          reg_w = self.regularizer.regularize(self.layers[i].weights_matrix)
+          reg_b = self.regularizer.regularize(self.layers[i].bias)
+          deltas[i] = (learning_rate*delta_w + reg_w, learning_rate*delta_b + reg_b)
 
       for i, (delta_w, delta_b) in enumerate(deltas):
         self.layers[i].weights_matrix += delta_w
-        self.layers[i].bias += delta_b
+        self.layers[i].bias += delta_b 
 
       return deltas  
 
-    def training(self, input: np.ndarray, target: np.ndarray, epochs, learning_rate, alpha, batch_size):
+    def training(self, training, validation, epochs, batch_size, learning_rate=0.1, alpha=0.1):
+            
+      input_tr, target_tr = training
+      input_vl, target_vl = validation
+      
       old_deltas = None
-      history = {"loss": [], "accuracy": []}
+      history = {"loss_tr": [], "loss_vl": []}
 
-      l = len(input)
+      l = len(input_tr)
 
       if not batch_size:
         batch_size = l
-
-      # shuffle the dataset before run over the dataset
-      # shuffling = np.random.permutation(l)
-      # input = input[shuffling]
-      # target = target[shuffling]
 
       for i in range(epochs):
 
@@ -148,8 +159,8 @@ class Network:
           for batch_i in range(batch_number*batch_size, min(batch_number*batch_size + batch_size, l)):
             batch_iterations += 1
 
-            x = input[batch_i]
-            y = target[batch_i]
+            x = input_tr[batch_i]
+            y = target_tr[batch_i]
 
             if not deltas:
               deltas = self._bp_delta_weights(x, y)
@@ -165,29 +176,20 @@ class Network:
 
           old_deltas = self._apply_delta_weights(deltas, learning_rate, alpha, old_deltas)
           
-        epoch_error = self.calculate_total_error(input, target)
-        # epoch_accuracy = self.calculate_total_accuracy(input, target)
-        print(i, epoch_error)
-        history["loss"].append(epoch_error)
-        # history["accuracy"].append(epoch_accuracy)
-      
+        epoch_error_tr = self.compute_total_error(input_tr, target_tr)
+        epoch_error_vl = self.compute_total_error(input_vl, target_vl)
+
+        #print(f"epoch {i}: error_tr = {epoch_error_tr} | error_vl = {epoch_error_vl}")
+        history["loss_tr"].append(epoch_error_tr)
+        history["loss_vl"].append(epoch_error_vl)
+
       return history
 
-    def calculate_total_error(self, input, target):
+    def compute_total_error(self, input, target):
       total_error = 0
       for i in range(len(input)):
-        diff = target[i] - self.forward_step(input[i])
-        total_error += np.linalg.norm(diff)**2
-        # total_error += target[i]*np.log(self.forward_step(input[i]))+(1-target[i])*np.log(1-self.forward_step(input[i]))
+        total_error += self.loss.compute(target[i], self.forward_step(input[i]))
       return total_error/len(input)
-
-    def calculate_total_accuracy(self, input, target):
-      accuracy = 0
-      for i in range(len(input)):
-        acc = 1 if abs(target[i] - self.forward_step(input[i])) < 0.5 else 0
-        accuracy += acc
-      return accuracy/len(input)
-
 
 class Layer:
     def __init__(self, output_dim, activation, initialization, initialization_parameters={}):
