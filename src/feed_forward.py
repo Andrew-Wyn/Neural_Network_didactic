@@ -1,7 +1,5 @@
 import numpy as np
 
-import losses
-
 def linear(input: np.ndarray):
     """ linear activation function """
     return input
