@@ -82,9 +82,10 @@ class Network:
       self.loss = None
       self.regularizer = None
     
-    def compile(self, loss=None, regularizer=None):
+    def compile(self, loss=None, regularizer=None, optimizer=None):
       self.loss = loss
       self.regularizer = regularizer
+      self.optimizer = optimizer
 
       prev_dim = self.input_dim 
       for layer in self.layers:
@@ -102,7 +103,6 @@ class Network:
       deltas = []
       # forward phase, calcolare gli output a tutti i livelli partendo dall'input (net, out)
       fw_out = self.forward_step(input)
-
       
       dE_dO = self.loss.derivate(target, fw_out) # -2*(target - fw_out) # last layer dE_dO modify based on the error function
       # dE_dO = -target/fw_out + (1-target)/(1-fw_out)
@@ -115,27 +115,23 @@ class Network:
       
       return list(reversed(deltas)) # from input to output
 
-    # TODO: that function have to be done in an external function
-    def _apply_delta_weights(self, deltas, learning_rate, alpha, old_deltas=None):
-      if old_deltas:
-        for i, (delta_w, delta_b) in enumerate(deltas):
-          old_delta_w, old_delta_b = old_deltas[i]
-          reg_w = self.regularizer.regularize(self.layers[i].weights_matrix)
-          reg_b = self.regularizer.regularize(self.layers[i].bias)
-          deltas[i] = (learning_rate*delta_w + alpha*old_delta_w + reg_w, learning_rate*delta_b + alpha*old_delta_b + reg_b)
-      else:
-        for i, (delta_w, delta_b) in enumerate(deltas):
-          reg_w = self.regularizer.regularize(self.layers[i].weights_matrix)
-          reg_b = self.regularizer.regularize(self.layers[i].bias)
-          deltas[i] = (learning_rate*delta_w + reg_w, learning_rate*delta_b + reg_b)
-
+    def _apply_deltas(self, deltas):
       for i, (delta_w, delta_b) in enumerate(deltas):
         self.layers[i].weights_matrix += delta_w
         self.layers[i].bias += delta_b 
 
-      return deltas  
 
-    def training(self, training, validation, epochs, batch_size, learning_rate=0.1, alpha=0.1):
+    def _regularize(self):
+      regs = []
+
+      for layer in self.layers:
+        reg_w = self.regularizer.regularize(layer.weights_matrix)
+        reg_b = self.regularizer.regularize(layer.bias)
+        regs.append((reg_w, reg_b))
+
+      return regs
+
+    def training(self, training, validation, epochs, batch_size):
             
       input_tr, target_tr = training
       input_vl, target_vl = validation
@@ -170,14 +166,19 @@ class Network:
 
           # at this point we have delta summed-up to all batch instances
           # let's average it          
-          deltas = [(delta_w/batch_iterations, delta_b/batch_iterations) for (delta_w, delta_b) in deltas]
-
-          old_deltas = self._apply_delta_weights(deltas, learning_rate, alpha, old_deltas)
+          deltas = [(delta_w/batch_iterations, delta_b/batch_iterations) for (delta_w, delta_b) in deltas]            
           
+          regs = self._regularize()
+
+          # calculate the delta throught the optimizer
+          optimized_deltas = self.optimizer.optimize(deltas, regs)
+
+          self._apply_deltas(optimized_deltas)
+
         epoch_error_tr = self.compute_total_error(input_tr, target_tr)
         epoch_error_vl = self.compute_total_error(input_vl, target_vl)
 
-        #print(f"epoch {i}: error_tr = {epoch_error_tr} | error_vl = {epoch_error_vl}")
+        print(f"epoch {i}: error_tr = {epoch_error_tr} | error_vl = {epoch_error_vl}")
         history["loss_tr"].append(epoch_error_tr)
         history["loss_vl"].append(epoch_error_vl)
 
