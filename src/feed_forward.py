@@ -17,6 +17,7 @@ def sigmoid(input: np.ndarray):
 
 
 def derivate_sigmoid(input: np.ndarray):
+    """ Derivative of sigmoid activation function """
     return np.multiply(sigmoid(input), np.subtract(np.ones(input.shape), sigmoid(input)))
 
 
@@ -26,23 +27,27 @@ def tanh(input: np.ndarray):
 
 
 def derivative_relu(input: np.ndarray):
-  mf = lambda x: 1 if x > 0 else 0
-  mf_v = np.vectorize(mf)
+    """ Derivative of ReLU activation function """
+    mf = lambda x: 1 if x > 0 else 0
+    mf_v = np.vectorize(mf)
 
-  return mf_v(input)
+    return mf_v(input)
 
 
 def gaussian_initialization(input_dim, output_dim):
-  return np.random.normal(size = (output_dim, input_dim)), np.random.normal(size = output_dim)
+    """Weights Gaussian initialization"""
+    return np.random.normal(size = (output_dim, input_dim)), np.random.normal(size = output_dim)
 
 
 def uniform_initialization(input_dim, output_dim, distribution_range):
-  a, b = distribution_range 
-  return np.random.uniform(low = a, high = b, size = (output_dim, input_dim)), np.random.uniform(low = a, high= b, size = output_dim)
+    """Weights Uniform initialization"""
+    a, b = distribution_range
+    return np.random.uniform(low = a, high = b, size = (output_dim, input_dim)), np.random.uniform(low = a, high= b, size = output_dim)
 
 
-def constant_initialization(input_dim, output_dim, value): 
-  return np.full(shape = (output_dim, input_dim), fill_value=value), np.full(shape = output_dim, fill_value=value)
+def constant_initialization(input_dim, output_dim, value):
+    """Weights constant initialization"""
+    return np.full(shape = (output_dim, input_dim), fill_value=value), np.full(shape = output_dim, fill_value=value)
 
 
 initialization_functions = {
@@ -69,12 +74,18 @@ derivate_activation_functions = {
 
 
 class Network:
+    """
+        Class of the neural network
+        Attributes:
+            input_dim: (int) the dimension of the input
+            layers: (list) the layers
+            loss: the loss function
+            regularizer: the regularization parameter
+            optimizer: learning rate and Polnjak momentum parameters
+
+    """
     def __init__(self, input_dim: int, layers=[]):
-      """
-      params:
-          ...
-      """
-      
+
       self.input_dim = input_dim
       self.layers = layers
 
@@ -83,6 +94,13 @@ class Network:
       self.regularizer = None
     
     def compile(self, loss=None, regularizer=None, optimizer=None):
+      """
+        Function that inizializes the neural network
+        Args:
+            loss: selected loss function
+            regularizer: selected regularization method
+            optimizer: optimization procedure
+      """
       self.loss = loss
       self.regularizer = regularizer
       self.optimizer = optimizer
@@ -94,12 +112,27 @@ class Network:
     
     # TODO: changed forward_set in Layer
     def forward_step(self, input: np.ndarray):
+      """
+        A forward step of the network
+        Args:
+            input: (np.array) of initial net values
+        Returns:
+            value: network's output
+      """
       value = input
       for layer in self.layers:
         value = layer.forward_step(value)
       return value
     
     def _bp_delta_weights(self, input: np.array, target: np.array): # return lista tuple (matrice delle derivate, vettore delle derivate biases)
+      """
+        Function that compute deltaW according to backpropagation algorithm
+        Args:
+            input: (np.array) initial net values
+            target: the target value
+        Returns:
+            output: deltasW
+      """
       deltas = []
       # forward phase, calcolare gli output a tutti i livelli partendo dall'input (net, out)
       fw_out = self.forward_step(input)
@@ -116,12 +149,22 @@ class Network:
       return list(reversed(deltas)) # from input to output
 
     def _apply_deltas(self, deltas):
+      """
+        Function that updates the weights according to W = W + deltaW
+        Args:
+            deltas: deltaW
+      """
       for i, (delta_w, delta_b) in enumerate(deltas):
         self.layers[i].weights_matrix += delta_w
         self.layers[i].bias += delta_b 
 
 
     def _regularize(self):
+      """
+        Function that returns the regularization part of the deltaW update rule
+        Args:
+            regs: (list) weights and biases regularization part
+      """
       regs = []
 
       for layer in self.layers:
@@ -132,6 +175,16 @@ class Network:
       return regs
 
     def training(self, training, validation, epochs, batch_size):
+      """
+        Function that performs neural network training phase, choosing the minibatch size if needed
+        Args:
+            training: training set
+            validation: validation set
+            epochs: number of epochs
+            batch_size: batch size
+        Returns:
+            history: training and validation error for each epoch
+      """
             
       input_tr, target_tr = training
       input_vl, target_vl = validation
@@ -185,19 +238,29 @@ class Network:
       return history
 
     def compute_total_error(self, input, target):
+      """
+        The computation of the total error
+        Args:
+            input: (np.array) initial net values
+            target: the target value
+        Returns:
+            output: total error
+      """
       total_error = 0
       for i in range(len(input)):
         total_error += self.loss.compute(target[i], self.forward_step(input[i]))
       return total_error/len(input)
 
 class Layer:
+    """
+        Class of the Layer
+        Attributes:
+            output_dim: (int) that indicate the dimension of the output
+            activation: (str) name of the activation function
+            initialization: (str) name of the initialization procedure
+            initialization_parameters: (dict) hyperparameters
+    """
     def __init__(self, output_dim, activation, initialization, initialization_parameters={}):
-        """
-        params:
-            weights_matrix: a matrix of weights
-            bias: a vector(or a matrix?) of biases
-            activation: a string relative to the required activation function 
-        """
         self.input_dim = None # if it's not setted, not "compiled" the nn
         self.output_dim = output_dim 
         self.weights_matrix = None
@@ -212,18 +275,39 @@ class Layer:
         self._output = None
 
     def initialize_weights(self, input_dim):
+      """
+        Function that initializes the weights
+        Args:
+            input_dim: (int) the dimension of the input
+      """
       self.input_dim = input_dim
       self.weights_matrix, self.bias = self.initialization(self.input_dim, self.output_dim)
 
     def forward_step(self, input: np.ndarray):
-        self._input = input
-        self._net = np.matmul(self.weights_matrix, self._input)
-        self._net = np.add(self._net, self.bias)
-        self._output = self.activation(self._net)
-        return self._output
+      """
+        Function that implement a layer forward step
+        Args:
+            input: (np.array) initial net values
+        Returns:
+            output: layer's output
+      """
+      self._input = input
+      self._net = np.matmul(self.weights_matrix, self._input)
+      self._net = np.add(self._net, self.bias)
+      self._output = self.activation(self._net)
+      return self._output
 
     def backpropagate_delta(self, upper_dE_dO): # return current layer
       # calculate dE_dNet for every node in the layer = dE_dO * fprime(net)
+      """
+        Function that implement backpropagation algorithm
+        Args:
+            upper_dE_dO: derivative of E with respect to the output O for the upper layer
+        Returns:
+            current dE_do: the current derivative of E with respect to O,
+            gradient_w: the gradient with respect to W
+            gradient_b: the gradient with respect to the bias
+      """
       dE_dNet = upper_dE_dO * self.activation_derivate(self._net)
       gradient_w = np.transpose(dE_dNet[np.newaxis, :]) @ self._input[np.newaxis, :] 
       gradient_b = dE_dNet
