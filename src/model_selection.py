@@ -3,17 +3,25 @@ import itertools
 from losses import *
 from regularizers import *
 
-
 import numpy as np
 import matplotlib.pyplot as plt
 
-def prepare_and_train_model(model, train_data, valid_data, loss, regularizer, fixed_params: dict, search_param:dict):
-    
-    model.compile(loss=loss, regularizer=regularizer)
 
-    return model.training(train_data, valid_data, **fixed_params, **search_param)
+keys_training_params = ["epochs", "batch_size"] 
 
-def grid_search(model, train_data, valid_data, loss, regularizer, fixed_params: dict, search_params:dict):
+
+def split_train_params(**total_params):
+    other_params = { key:value for key,value in total_params.items() if key not in keys_training_params}
+    training_params = { key:value for key,value in total_params.items() if key in keys_training_params}
+    return other_params, training_params
+
+
+def grid_search_cv(model, train_data, fixed_params:dict, search_params:dict):
+    pass
+
+
+# drop to the build_model the task to assign the params to build the model
+def grid_search(model, train_data, valid_data, build_model, search_params:dict):
     """
     search_params {"par_1": parameters, "par_2": parameters, ...}
     """
@@ -27,9 +35,12 @@ def grid_search(model, train_data, valid_data, loss, regularizer, fixed_params: 
         for i, param_key in enumerate(search_params.keys()):
             search_param[param_key] = param_combination[i]
 
-        print(search_param)
+        print("-> ", search_param)
         
-        history = prepare_and_train_model(model, train_data, valid_data, loss, regularizer, fixed_params, search_param)
+        others_params, training_params = split_train_params(**search_param)
+        
+        model = build_model(model, **others_params)
+        history = model.training(train_data, valid_data, **training_params)
         
         results.append(history["loss_vl"])
 

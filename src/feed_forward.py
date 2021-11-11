@@ -174,7 +174,7 @@ class Network:
 
       return regs
 
-    def training(self, training, validation, epochs, batch_size):
+    def training(self, training, validation, epochs=500, batch_size=64):
       """
         Function that performs neural network training phase, choosing the minibatch size if needed
         Args:
@@ -189,7 +189,6 @@ class Network:
       input_tr, target_tr = training
       input_vl, target_vl = validation
       
-      old_deltas = None
       history = {"loss_tr": [], "loss_vl": []}
 
       l = len(input_tr)

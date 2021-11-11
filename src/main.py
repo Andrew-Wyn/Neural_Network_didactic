@@ -9,6 +9,12 @@ import matplotlib.pyplot as plt
 
 from sklearn.model_selection import train_test_split
 
+
+def build_model(model:Network, learning_rate, alpha):
+    model.compile(loss=MSE(), regularizer=L2_regularizer(0), optimizer=StochasticGradientDescent(learning_rate, alpha))
+    return model
+
+
 X, y = read_monk(2)
 
 print(X.shape)
@@ -32,10 +38,10 @@ nn = Network(17, [
     Layer(1, "sigmoid", 'uniform', {"distribution_range": (0.01, 0.25)})
 ])
 
-"""
-best_param = grid_search(nn, (train_x, train_y), (valid_x, valid_y), loss=MSE(), regularizer=L2_regularizer(0), fixed_params={"epochs": 300, "batch_size": 64}, search_params={"learning_rate": [0.1, 0.3, 0.6, 0.9], "alpha": [0.1, 0.3, 0.6, 0.9]})
+
+best_param = grid_search(nn, (train_x, train_y), (valid_x, valid_y), build_model=build_model, search_params={"learning_rate":[0.3, 0.6], "alpha":[0.3, 0.6]})
 print(best_param)
-"""
+
 
 nn.compile(loss=MSE(), regularizer=L2_regularizer(0), optimizer=StochasticGradientDescent(learning_rate=0.75, alpha=0.8))
 history = nn.training((train_x, train_y), (valid_x, valid_y), epochs=500, batch_size=len(train_x))
