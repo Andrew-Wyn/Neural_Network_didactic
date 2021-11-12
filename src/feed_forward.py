@@ -193,7 +193,7 @@ class Network:
 
       l = len(input_tr)
 
-      if not batch_size:
+      if type(batch_size) is str and batch_size == "full":
         batch_size = l
 
       for i in range(epochs):
