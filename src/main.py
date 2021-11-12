@@ -1,3 +1,4 @@
+from numpy import histogram
 from feed_forward import *
 from optimizers import StochasticGradientDescent
 from utility import *
@@ -26,12 +27,16 @@ X, y = read_monk(2)
 print(X.shape)
 print(y.shape)
 
-# loss_tr, loss_vl = cross_validation(monk_2_build_model, (X, y), {"learning_rate": 0.6, "alpha": 0.8, "epochs":200, "batch_size": "full"},2)
-
-#plt.plot(loss_tr)
-#plt.plot(loss_vl)
-#plt.show()
-
 best_params = grid_search_cv(monk_2_build_model, (X, y), {"learning_rate": [0.6, 0.7], "alpha": [0.8, 0.9], "epochs":100, "batch_size": "full"})
 
 print(best_params)
+
+train_x, valid_x, train_y, valid_y = train_test_split(X, y, test_size=0.33, random_state=42)
+
+model=monk_2_build_model(**best_params)
+
+history = model.training((train_x, train_y), (valid_x, valid_y), epochs=100, batch_size="full")
+
+plt.plot(history["loss_tr"])
+plt.plot(history["loss_vl"])
+plt.show()
