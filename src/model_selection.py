@@ -1,5 +1,8 @@
 import itertools
+import math
+
 from typing import List
+
 
 from losses import *
 from regularizers import *
@@ -9,6 +12,21 @@ import matplotlib.pyplot as plt
 
 
 keys_training_params = ["epochs", "batch_size"] 
+
+def make_plot_grid(search_params):
+    num_params = len(search_params)
+
+    num_cols = 1
+    num_rows = 1
+    for i, x in enumerate(search_params.values()):
+        if i+1 > math.ceil(num_params/2):
+            num_rows *= len(x)
+        else:
+            num_cols *= len(x)
+
+    fig = plt.figure(constrained_layout=True, figsize=(3*num_cols,3*num_rows))
+    spec = fig.add_gridspec(ncols=num_cols, nrows=num_rows)
+    return fig, spec, num_cols, num_rows
 
 
 def split_train_params(params):
@@ -62,9 +80,11 @@ def grid_search_cv(build_model, dataset, params:dict):
 
     static_params, search_params = split_search_params(params)
 
+    fig, spec, num_cols, num_rows = make_plot_grid(search_params)
+
     best_result = np.inf
     best_combination = None
-    for param_combination in itertools.product(*search_params.values()):
+    for j, param_combination in enumerate(itertools.product(*search_params.values())):
         # create dictionary for params
         search_param = {}
         for i, param_key in enumerate(search_params.keys()):
@@ -72,7 +92,17 @@ def grid_search_cv(build_model, dataset, params:dict):
 
         print("-> ", search_param)
 
-        _, loss_vl_cv = cross_validation(build_model, dataset, {**static_params, **search_param})
+        loss_tr_cv, loss_vl_cv = cross_validation(build_model, dataset, {**static_params, **search_param})
+
+        col = j%num_cols
+        row = j//num_cols
+
+        print(row, col)
+
+        ax = fig.add_subplot(spec[row, col])
+        
+        ax.plot(loss_tr_cv)
+        ax.plot(loss_vl_cv)
 
         result = min(loss_vl_cv)
 
@@ -84,6 +114,9 @@ def grid_search_cv(build_model, dataset, params:dict):
     best_param = {}
     for i, param_key in enumerate(search_params.keys()):
         best_param[param_key] = best_combination[i]
+
+    plt.show()
+    plt.clf()
 
     return best_param
 
