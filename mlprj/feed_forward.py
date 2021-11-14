@@ -134,6 +134,7 @@ class Network:
       Returns:
           output: deltasW
     """
+    print(input)
     deltas = []
     # forward phase, calcolare gli output a tutti i livelli partendo dall'input (net, out)
     fw_out = self.forward_step(input)

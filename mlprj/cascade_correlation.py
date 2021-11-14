@@ -13,19 +13,24 @@ class Layer:
           initialization: (str) name of the initialization procedure
           initialization_parameters: (dict) hyperparameters
   """
-  def __init__(self, output_dim, activation, initialization, initialization_parameters={}):
-      self.input_dim = None # if it's not setted, not "compiled" the nn
-      self.output_dim = output_dim 
-      self.weights_matrix = None
-      self.bias = None
-      self.activation = activation_functions[activation]
-      self.activation_derivate = derivate_activation_functions[activation]
+  def __init__(self, previous_layers, output_dim, activation, initialization, initialization_parameters={}):
+        print(previous_layers)
+        self.input_dim = sum([
+          len(layer.output_dim) for layer in previous_layers
+        ])
+        self.output_dim = output_dim 
+        self.weights_matrix = None
+        self.bias = None
+        self.activation = activation_functions[activation]
+        self.activation_derivate = derivate_activation_functions[activation]
 
-      self.initialization = lambda input_dim, output_dim: initialization_functions[initialization](input_dim, output_dim, **initialization_parameters)
+        self.initialization = lambda input_dim, output_dim: initialization_functions[initialization](input_dim, output_dim, **initialization_parameters)
 
-      self._input = None
-      self._net = None
-      self._output = None
+        self._input = None
+        self._net = None
+        self._output = None
+
+        self.previous_layers = previous_layers
 
   def initialize_weights(self, input_dim):
     """
@@ -33,7 +38,7 @@ class Layer:
       Args:
           input_dim: (int) the dimension of the input
     """
-    self.input_dim = input_dim
+    self.input_dim += input_dim
     self.weights_matrix, self.bias = self.initialization(self.input_dim, self.output_dim)
 
   def forward_step(self, input: np.ndarray):
@@ -44,72 +49,60 @@ class Layer:
       Returns:
           output: layer's output
     """
-    self._input = input
+    internal_outputs = []
+
+    for layer in self.previous_layers:
+      internal_outputs.append(layer.forward_step(np.append(internal_outputs, input)))
+
+    self._input = np.append(internal_outputs, input)
     self._net = np.matmul(self.weights_matrix, self._input)
     self._net = np.add(self._net, self.bias)
     self._output = self.activation(self._net)
     return self._output
 
-  def backpropagate_delta(self, upper_dE_dO): # return current layer
-    # calculate dE_dNet for every node in the layer = dE_dO * fprime(net)
-    """
-      Function that implement backpropagation algorithm
-      Args:
-          upper_dE_dO: derivative of E with respect to the output O for the upper layer
-      Returns:
-          current dE_do: the current derivative of E with respect to O,
-          gradient_w: the gradient with respect to W
-          gradient_b: the gradient with respect to the bias
-    """
-    dE_dNet = upper_dE_dO * self.activation_derivate(self._net)
-    gradient_w = np.transpose(dE_dNet[np.newaxis, :]) @ self._input[np.newaxis, :] 
-    gradient_b = dE_dNet
-
-    # gradient_w.resize(self.weights_matrix.shape)
-    # gradient_b.resize(self.bias.shape)
-    
-    # calculate the dE_dO to pass to the previous layer
-    current_dE_do = np.array([(np.dot(dE_dNet, self.weights_matrix[:, j])) for j in range(self.input_dim)])
-
-    return current_dE_do, gradient_w, gradient_b
-
-
 
 class CascadeCorrelation:
   def __init__(self, input_dim, output_dim, activation, initialization, initialization_parameters={}):
-    self.input_dim = input_dim
-    self.out_input_dim = None
+    # last neuron stuffs
+    self.input_dim = input_dim # fixed input dimension
+    self._real_input_dim = None # dimension of the real input of the out
     self.output_dim = output_dim
     self.activation = activation_functions[activation]
     self.activation_derivate = derivate_activation_functions[activation]
     self.initialization = lambda input_dim, output_dim: initialization_functions[initialization](input_dim, output_dim, **initialization_parameters)
     self.weights_matrix = None
     self.bias = None
-
     self._input = None
     self._net = None
     self._output = None
 
+    # entire network stuffs
     self.layers = []
 
-  def compile(self, loss=None):
+  def compile(self, loss=None, regularizer=None, optimizer=None):
     self.loss = loss
+    self.regularizer = regularizer
+    self.optimizer = optimizer
+    self.refresh()
 
   def refresh(self):
-    self.out_input_dim = sum([
-      len(layer.output_dim) for layer in self.layers
+    # necessary when a new layer is added to the network
+    # calculate the real input dim
+    self._real_input_dim = sum([
+      layer.output_dim for layer in self.layers
     ]) + self.input_dim
     
-    # init output layer weights, at compile time we have only output layer
-    self.weights_matrix, self.bias = self.initialization(self.out_input_dim, self.output_dim)
+    # init output layer weights
+    self.weights_matrix, self.bias = self.initialization(self._real_input_dim, self.output_dim)
 
-  def forward_step(self, input: np.ndarray):
+  def forward_step(self, input: np.array):
     internal_outputs = []
 
     for layer in self.layers:
-      internal_outputs.append(layer.feed_forward(np.append(internal_outputs, input)))
+      internal_outputs.append(layer.forward_step(np.append(internal_outputs, input)))
 
-    self._input = np.append(internal_outputs, self._input)
+    self._input = np.append(internal_outputs, input)
+
     self._net = np.matmul(self.weights_matrix, self._input)
     self._net = np.add(self._net, self.bias)
     self._output = self.activation(self._net)
@@ -118,12 +111,6 @@ class CascadeCorrelation:
 
   def _perceptron_delta_weights(self, input: np.array, target: np.array): # return lista tuple (matrice delle derivate, vettore delle derivate biases)
     """
-      Function that compute deltaW according to backpropagation algorithm
-      Args:
-          input: (np.array) initial net values
-          target: the target value
-      Returns:
-          output: deltasW
     """
 
     fw_out = self.forward_step(input)
@@ -137,25 +124,28 @@ class CascadeCorrelation:
 
   def _correlation_delta_weights(self, Vs, Es, Ds, Is): # return lista tuple (matrice delle derivate, vettore delle derivate biases)
     """
-      ...
+      Vs = np.array represent the candidate neuron outputs
+      Es = np.array represent the error of the output and the target
+      Ds = np.array represent the derivatives of activation function of the output layer
+      Is = np.array represent the inputs of the candidate unit
     """
-    Vmean = np.mean(Vs)
-    Emean = np.mean(Es)
+    
+    Vmean = np.mean(Vs, axis=0)
+    Emean = np.mean(Es, axis=0)
 
     # lenght of sigma_o equal to the output dim of the network
-    sigma_o = np.sign(np.sum((np.array(Vs) - Vmean)*(np.array(Es) - Emean), axis=1))
+    sigma = np.sign((Vs - Vmean).T@(Es - Emean))
 
-    gradient_w = np.array(len(Is))
-    gradient_b = 0
-    
-    for p, E in enumerate(Es):
-      S_o = 0
-      for o, s_o in enumerate(sigma_o):
-        S_o += s_o*(E[o]-Emean[o])
-      gradient_w += S_o*Ds[p]*Is[p]
-      gradient_b += S_o*Ds[p]
+    gradient_b = ((sigma*(Es - Emean)).T@Ds)
+    gradient_w = (sigma*(Es - Emean)).T@(Ds*Is) # lenght I
 
     return (gradient_w, gradient_b)
+    
+  def _regularize(self):
+    reg_w = self.regularizer.regularize(self.weights_matrix)
+    reg_b = self.regularizer.regularize(self.bias)
+    return (reg_w, reg_b)
+
 
   def training(self, training, validation, epochs=500, batch_size=64):
     """
@@ -207,7 +197,7 @@ class CascadeCorrelation:
         regs = self._regularize()
 
         # calculate the delta throught the optimizer
-        optimized_deltas = self.optimizer.optimize([delta], [regs])
+        optimized_deltas = self.optimizer.optimize([delta], [regs])[0]
 
         delta_w, delta_b = optimized_deltas
         self.weights_matrix += delta_w
@@ -222,13 +212,9 @@ class CascadeCorrelation:
 
       if i < epochs-1:
         # aggiungo un hidden unit, i cui pesi sono calcolati tramite covarianza
-        new_layer = Layer(1, "relu", "gaussian")
+        new_layer = Layer(self.layers, 1, "relu", "gaussian")
 
-        new_layer_input_dim = sum([
-          len(layer.output_dim) for layer in self.layers
-        ]) + self.input_dim
-
-        new_layer.initialize_weights(new_layer_input_dim)
+        new_layer.initialize_weights(self.input_dim)
 
         # covariance learning
         for batch_number in range(l//batch_size):
@@ -244,25 +230,21 @@ class CascadeCorrelation:
             x = input_tr[batch_i]
             y = target_tr[batch_i]
 
-            # calculate output of the new hidden unit
-            internal_outputs = []
-            for layer in self.layers:
-              internal_outputs.append(layer.feed_forward(np.append(internal_outputs, input)))
-            
-            Vs.append(new_layer.forward_step(np.append(internal_outputs, input)))
-            
-            Is.append(np.append(internal_outputs, input))
-            Ds.append(new_layer.activation_derivate(new_layer._net))
-
-            O_p = self.forward_step(input)
+            O_p = self.forward_step(x)
             E_p = O_p - y
             Es.append(E_p)
+            # calculate output of the new hidden unit
+            # TODO: move inside layer
+            Vs.append(new_layer.forward_step(x))
+            Is.append(new_layer._input)
+            Ds.append(new_layer.activation_derivate(new_layer._net))
 
           # at this point we have delta summed-up to all batch instances
-          # let's average it
-          S_p_w, S_p_b = self._correlation_delta_weights(Vs, Es, Ds, Is)     
-          new_layer.weights_matrix += S_p_w
-          new_layer.bias += S_p_b
+
+          # move inside the optimizator          
+          S_p_w, S_p_b = self._correlation_delta_weights(np.array(Vs), np.array(Es), np.array(Ds), np.array(Is))     
+          new_layer.weights_matrix += 0.1*S_p_w
+          new_layer.bias += 0.1*S_p_b[0]
 
         self.layers.append(
           new_layer # to parametrize outside
