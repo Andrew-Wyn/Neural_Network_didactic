@@ -14,9 +14,8 @@ class Layer:
           initialization_parameters: (dict) hyperparameters
   """
   def __init__(self, previous_layers, output_dim, activation, initialization, initialization_parameters={}):
-        print(previous_layers)
         self.input_dim = sum([
-          len(layer.output_dim) for layer in previous_layers
+          layer.output_dim for layer in previous_layers
         ])
         self.output_dim = output_dim 
         self.weights_matrix = None
@@ -38,7 +37,7 @@ class Layer:
       Args:
           input_dim: (int) the dimension of the input
     """
-    self.input_dim += input_dim
+    self.input_dim = input_dim
     self.weights_matrix, self.bias = self.initialization(self.input_dim, self.output_dim)
 
   def forward_step(self, input: np.ndarray):
@@ -52,7 +51,7 @@ class Layer:
     internal_outputs = []
 
     for layer in self.previous_layers:
-      np.append(internal_outputs, input)
+      internal_outputs.append(layer.forward_step(input))
 
     self._input = np.append(internal_outputs, input)
     self._net = np.matmul(self.weights_matrix, self._input)
@@ -99,10 +98,9 @@ class CascadeCorrelation:
     internal_outputs = []
 
     for layer in self.layers:
-      internal_outputs.append(layer.forward_step(np.append(internal_outputs, input)))
+      internal_outputs.append(layer.forward_step(input))
 
     self._input = np.append(internal_outputs, input)
-
     self._net = np.matmul(self.weights_matrix, self._input)
     self._net = np.add(self._net, self.bias)
     self._output = self.activation(self._net)
@@ -205,15 +203,15 @@ class CascadeCorrelation:
       epoch_error_tr = self.compute_total_error(input_tr, target_tr)
       epoch_error_vl = self.compute_total_error(input_vl, target_vl)
 
-      print(f"epoch {i}: error_tr = {epoch_error_tr} | error_vl = {epoch_error_vl}")
+      print(f"epoch {i}: error_tr = {epoch_error_tr} | error_vl = {epoch_error_vl} | hidden_neurons = {len(self.layers)}")
       history["loss_tr"].append(epoch_error_tr)
       history["loss_vl"].append(epoch_error_vl)
 
       if i < epochs-1:
         # aggiungo un hidden unit, i cui pesi sono calcolati tramite covarianza
-        new_layer = Layer(self.layers, 1, "relu", "gaussian")
+        new_layer = Layer(self.layers.copy(), 1, "relu", "gaussian")
 
-        new_layer.initialize_weights(self.input_dim)
+        new_layer.initialize_weights(self._real_input_dim)
 
         # covariance learning
         for batch_number in range(l//batch_size):
@@ -242,14 +240,17 @@ class CascadeCorrelation:
 
           # move inside the optimizator          
           S_p_w, S_p_b = self._correlation_delta_weights(np.array(Vs), np.array(Es), np.array(Ds), np.array(Is))     
-          new_layer.weights_matrix += 0.1*S_p_w
-          new_layer.bias += 0.1*S_p_b[0]
+          new_layer.weights_matrix += 0.01*S_p_w
+          new_layer.bias += 0.01*S_p_b[0]
 
         self.layers.append(
           new_layer # to parametrize outside
         )
 
+        print("nuovo hidden layer aggiunto")
+        
         self.refresh()
+        self.optimizer.reset()
 
     return history
 

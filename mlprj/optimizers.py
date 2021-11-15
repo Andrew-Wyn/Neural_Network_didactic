@@ -12,6 +12,9 @@ class StochasticGradientDescent(Optimizer):
 
         self.memory = None # old deltas
 
+    def reset(self):
+        self.memory = None
+
     def optimize(self, deltas, regs):        
         if self.memory:
             for i, (delta_w, delta_b) in enumerate(deltas):

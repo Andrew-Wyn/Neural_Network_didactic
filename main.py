@@ -44,9 +44,9 @@ cc = cascade_correlation.CascadeCorrelation(
 )
 
 cc.compile(loss=MSE(), regularizer=L2_regularizer(0), optimizer=StochasticGradientDescent(0.5, 0.5))
-cc.training((train_x, train_y), (valid_x, valid_y), epochs=10, batch_size=64)
+cc.training((train_x, train_y), (valid_x, valid_y), epochs=20, batch_size=64)
 
-breakpoint()
+exit()
 
 best_params = grid_search_cv(monk_2_build_model, (X, y), {"learning_rate": [0.6, 0.7], "alpha": [0.8, 0.9], "epochs":[5, 10], "batch_size": "full"})
 
