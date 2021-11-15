@@ -52,7 +52,7 @@ class Layer:
     internal_outputs = []
 
     for layer in self.previous_layers:
-      internal_outputs.append(layer.forward_step(np.append(internal_outputs, input)))
+      np.append(internal_outputs, input)
 
     self._input = np.append(internal_outputs, input)
     self._net = np.matmul(self.weights_matrix, self._input)
@@ -195,7 +195,6 @@ class CascadeCorrelation:
         delta = (delta_w/batch_iterations, delta_b/batch_iterations)
         
         regs = self._regularize()
-
         # calculate the delta throught the optimizer
         optimized_deltas = self.optimizer.optimize([delta], [regs])[0]
 
