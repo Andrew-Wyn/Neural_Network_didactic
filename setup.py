@@ -1,15 +1,19 @@
+
 from setuptools import setup
+
+with open('requirements.txt') as f:
+    required = f.read().splitlines()
 
 setup(
     # Needed to silence warnings (and to be a worthwhile package)
     name='ProgettoMachineLearning',
     url='https://github.com/Andrew-Wyn/Neural_Network_didactic',
-    author='John Ladan',
-    author_email='jladan@uwaterloo.ca',
+    author='Luca Moroni, Maria Cassese, Simone Manti',
+    author_email='...',
     # Needed to actually package something
     packages=['mlprj'],
     # Needed for dependencies
-    install_requires=['numpy', 'pandas', 'scikit-learn'],
+    install_requires=required,
     # *strongly* suggested for sharing
     version='0.1',
     # The license can be anything you like
