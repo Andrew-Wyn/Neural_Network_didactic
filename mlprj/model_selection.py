@@ -4,8 +4,8 @@ import math
 from typing import List
 
 
-from losses import *
-from regularizers import *
+from .losses import *
+from .regularizers import *
 
 import numpy as np
 import matplotlib.pyplot as plt
