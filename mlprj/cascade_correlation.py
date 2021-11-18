@@ -134,8 +134,8 @@ class CascadeCorrelation:
     # lenght of sigma_o equal to the output dim of the network
     sigma = np.sign((Vs - Vmean).T@(Es - Emean))
 
-    gradient_b = ((sigma*(Es - Emean)).T@Ds)
-    gradient_w = (sigma*(Es - Emean)).T@(Ds*Is) # lenght I
+    gradient_b = np.dot(sigma, (Es - Emean).T@Ds)
+    gradient_w = np.dot(sigma, (Es - Emean).T@(np.multiply(Ds,Is.T).T)) # lenght I
 
     return (gradient_w, gradient_b)
     
