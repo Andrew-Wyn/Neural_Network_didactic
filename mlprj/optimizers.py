@@ -1,5 +1,3 @@
-from regularizers import *
-
 class Optimizer:
     def __init__(self):
         pass
