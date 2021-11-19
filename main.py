@@ -1,10 +1,10 @@
 from numpy import histogram
-from feed_forward import *
-from optimizers import StochasticGradientDescent
-from datasets import *
-from model_selection import *
-from losses import *
-from regularizers import *
+from mlprj.feed_forward import *
+from mlprj.optimizers import StochasticGradientDescent
+from mlprj.datasets import *
+from mlprj.model_selection import *
+from mlprj.losses import *
+from mlprj.regularizers import *
 
 import matplotlib.pyplot as plt
 
