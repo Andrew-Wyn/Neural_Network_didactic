@@ -1,7 +1,7 @@
 import numpy as np
 
-from activations import *
-from initializations import *
+from .activations import *
+from .initializations import *
 
 
 class Layer:
@@ -134,7 +134,6 @@ class Network:
       Returns:
           output: deltasW
     """
-    print(input)
     deltas = []
     # forward phase, calcolare gli output a tutti i livelli partendo dall'input (net, out)
     fw_out = self.forward_step(input)

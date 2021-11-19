@@ -43,7 +43,7 @@ activation_functions = {
 
 
 derivate_activation_functions = {
-    'linear': lambda x: 1,
+    'linear': lambda _: 1,
     'relu': derivative_relu,
     'sigmoid': derivate_sigmoid,
     #'tahn': derivate_tahn

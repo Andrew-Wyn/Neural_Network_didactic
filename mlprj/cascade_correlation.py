@@ -1,7 +1,7 @@
 import numpy as np
 
-from activations import *
-from initializations import *
+from .activations import *
+from .initializations import *
 
 
 class Layer:
