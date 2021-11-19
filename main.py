@@ -1,20 +1,10 @@
 from numpy import histogram
-<<<<<<< HEAD:main.py
 from mlprj.feed_forward import *
 from mlprj.optimizers import StochasticGradientDescent
 from mlprj.datasets import *
 from mlprj.model_selection import *
 from mlprj.losses import *
 from mlprj.regularizers import *
-=======
-from feed_forward import *
-from optimizers import StochasticGradientDescent
-from datasets import *
-from model_selection import *
-from losses import *
-from regularizers import *
-import cascade_correlation
->>>>>>> 60d2cce (implementing cc):mlprj/main.py
 
 import matplotlib.pyplot as plt
 
