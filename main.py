@@ -27,11 +27,21 @@ X, y = read_monk(2)
 print(X.shape)
 print(y.shape)
 
+train_x, valid_x, train_y, valid_y = train_test_split(X, y, test_size=0.10, random_state=42)
+
+model=monk_2_build_model(0.5, 0.5)
+
+history = model.training((train_x, train_y), (valid_x, valid_y), epochs=500, batch_size=32)
+
+plt.plot(history["loss_tr"])
+plt.plot(history["loss_vl"])
+plt.show()
+
+exit()
+
 best_params = grid_search_cv(monk_2_build_model, (X, y), {"learning_rate": [0.6, 0.7], "alpha": [0.8, 0.9], "epochs":[5, 10], "batch_size": "full"})
 
 print(best_params)
-
-train_x, valid_x, train_y, valid_y = train_test_split(X, y, test_size=0.33, random_state=42)
 
 best_comp_params, best_train_params = split_train_params(best_params)
 

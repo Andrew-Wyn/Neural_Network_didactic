@@ -1,4 +1,5 @@
 import numpy as np
+import math
 
 def linear(input: np.ndarray):
     """ linear activation function """
@@ -137,8 +138,7 @@ class Network:
       # forward phase, calcolare gli output a tutti i livelli partendo dall'input (net, out)
       fw_out = self.forward_step(input)
       
-      dE_dO = self.loss.derivate(target, fw_out) # -2*(target - fw_out) # last layer dE_dO modify based on the error function
-      # dE_dO = -target/fw_out + (1-target)/(1-fw_out)
+      dE_dO = self.loss.derivate(target, fw_out)
       # backward phase, calcolare i delta partendo dal livello di output
       dE_dO, gradient_w, gradient_b = self.layers[-1].backpropagate_delta(dE_dO)
       deltas.append((-gradient_w, -gradient_b))
@@ -198,7 +198,7 @@ class Network:
 
       for i in range(epochs):
 
-        for batch_number in range(l//batch_size):
+        for batch_number in range(math.ceil(l//batch_size)):
           deltas = None
 
           batch_iterations = 0
@@ -217,8 +217,9 @@ class Network:
                 deltas[d_i] = (delta_w + update_w, delta_b + update_b)
 
           # at this point we have delta summed-up to all batch instances
-          # let's average it          
-          deltas = [(delta_w/batch_iterations, delta_b/batch_iterations) for (delta_w, delta_b) in deltas]            
+          # let's average it
+          # sumgrad/mb * (mb/l) * eta
+          deltas = [(delta_w/l, delta_b/l) for (delta_w, delta_b) in deltas]
           
           regs = self._regularize()
 
