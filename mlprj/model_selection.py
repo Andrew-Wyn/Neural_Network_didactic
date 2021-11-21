@@ -35,7 +35,7 @@ def split_train_params(params):
     params = parameters
     """
     other_params = { key:value for key,value in params.items() if key not in keys_training_params}
-    training_params = { key:value for key,value in params.items() if key in keys_t raining_params}
+    training_params = { key:value for key,value in params.items() if key in keys_training_params}
     return other_params, training_params
 
 def split_search_params(params):
@@ -142,8 +142,9 @@ def grid_search_cv(build_model, dataset, params:dict):
 
 
 # drop to the build_model the task to assign the params to build the model
-def grid_search(model, train_data, valid_data, build_model, params:dict):
+def grid_search(build_model, train_data, valid_data, params:dict):
     """
+    TODO: scrivere documentazione seguendo standard pep8
     Perform a classic grid_search.
     train_data = training data set
     valid_data = validation data set
@@ -165,7 +166,7 @@ def grid_search(model, train_data, valid_data, build_model, params:dict):
         
         build_params, training_params = split_train_params({**static_params, **search_param})
         
-        model = build_model(model, **build_params)
+        model = build_model(**build_params)
         history = model.training(train_data, valid_data, **training_params)
         
         result = min(history["loss_vl"])
