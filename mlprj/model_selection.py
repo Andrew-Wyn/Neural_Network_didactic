@@ -30,17 +30,31 @@ def make_plot_grid(search_params):
 
 
 def split_train_params(params):
+    """
+    Splitting training parameters with epochs and batch_size
+    params = parameters
+    """
     other_params = { key:value for key,value in params.items() if key not in keys_training_params}
-    training_params = { key:value for key,value in params.items() if key in keys_training_params}
+    training_params = { key:value for key,value in params.items() if key in keys_t raining_params}
     return other_params, training_params
 
 def split_search_params(params):
+    """
+    Splitting search parameters with static parameters (i.e. parameters like epochs or batch_size)
+    """
     static_params = { key:value for key,value in params.items() if not isinstance(value, List) }
     search_params = { key:value for key,value in params.items() if isinstance(value, List)}
     return static_params, search_params
 
 
 def cross_validation(build_model, dataset: tuple, params:dict, k_folds=4):
+    """
+    Perform a k-fold cross-validation with k = k_folds.
+    build_model = model architecture
+    dataset = data set
+    params = dictionary of the parameters
+    k_folds = number of folds of cross validation (i.e. k_folds = k)
+    """
     X, y = dataset
 
     l = len(X)
@@ -77,7 +91,13 @@ def cross_validation(build_model, dataset: tuple, params:dict, k_folds=4):
 
 
 def grid_search_cv(build_model, dataset, params:dict):
-
+    """
+    Perform a grid search in which for every n-uple of parameters we use a 4-fold cross validation
+    for a better estimate of training and validation error.
+    build_model = model architecture
+    dataset = data set
+    params = dictionary of parameters 
+    """
     static_params, search_params = split_search_params(params)
 
     fig, spec, num_cols, num_rows = make_plot_grid(search_params)
@@ -124,7 +144,11 @@ def grid_search_cv(build_model, dataset, params:dict):
 # drop to the build_model the task to assign the params to build the model
 def grid_search(model, train_data, valid_data, build_model, params:dict):
     """
-    search_params {"par_1": parameters, "par_2": parameters, ...}
+    Perform a classic grid_search.
+    train_data = training data set
+    valid_data = validation data set
+    build_model = model architecture
+    params = dictionary of parameters
     """
 
     static_params, search_params = split_search_params(params)
