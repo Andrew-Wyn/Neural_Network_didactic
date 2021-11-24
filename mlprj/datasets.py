@@ -6,22 +6,30 @@ import numpy as np
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.preprocessing import StandardScaler
 
-
-def read_monk(dataset_id):
-    stream = pkg_resources.resource_stream(__name__, f"data/Monks/monks-{dataset_id}.train")
-    
+def get_preprocess_monk(stream):
     col_names = ['a0', 'a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'Identifier']
-    train_ds = pd.read_csv(stream, sep=' ', names=col_names)
-    train_ds.set_index('Identifier', inplace=True)
+    ds = pd.read_csv(stream, sep=' ', names=col_names)
+    ds.set_index('Identifier', inplace=True)
 
-    train_ds = train_ds.sample(frac=1)
-    labels = train_ds.pop('a0')
+    ds = ds.sample(frac=1)
+    labels = ds.pop('a0')
 
-    train_ds = OneHotEncoder().fit_transform(train_ds).toarray().astype(np.float32)
+    ds = OneHotEncoder().fit_transform(ds).toarray().astype(np.float32)
 
     labels = labels.to_numpy()[:, np.newaxis]
 
-    return train_ds, labels
+    return ds, labels
+
+
+def read_monk(dataset_id):
+    stream_train = pkg_resources.resource_stream(__name__, f"data/Monks/monks-{dataset_id}.train")
+    stream_test = pkg_resources.resource_stream(__name__, f"data/Monks/monks-{dataset_id}.test")
+    
+    train_ds, train_labels = get_preprocess_monk(stream_train)
+    test_ds, test_labels = get_preprocess_monk(stream_test)
+
+    return train_ds, test_ds, train_labels, test_labels
+    
 
 def read_cup():
     stream = pkg_resources.resource_stream(__name__, f"data/Cup/ML-CUP21-TR.csv")
