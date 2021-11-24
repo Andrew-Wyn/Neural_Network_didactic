@@ -1,38 +1,38 @@
 import numpy as np
 import math
 
-def linear(input: np.ndarray):
+def linear(x: np.ndarray):
     """ linear activation function """
-    return input
+    return x
 
 
-def relu(input: np.ndarray):
+def relu(x: np.ndarray):
     """ ReLU activation function """
-    return np.maximum(input, 0)
+    return np.maximum(x, 0)
 
 
-def sigmoid(input: np.ndarray):
+def sigmoid(x: np.ndarray):
     """ Sigmoid activation function """
-    ones = np.ones(input.shape)
-    return np.divide(ones, np.add(ones, np.exp(-input)))
+    ones = np.ones(x.shape)
+    return np.divide(ones, np.add(ones, np.exp(-x)))
 
 
-def derivate_sigmoid(input: np.ndarray):
+def derivate_sigmoid(x: np.ndarray):
     """ Derivative of sigmoid activation function """
-    return np.multiply(sigmoid(input), np.subtract(np.ones(input.shape), sigmoid(input)))
+    return np.multiply(sigmoid(x), np.subtract(np.ones(x.shape), sigmoid(x)))
 
 
-def tanh(input: np.ndarray):
+def tanh(x: np.ndarray):
     """ Hyperbolic tangent function (TanH) """
-    return np.tanh(input)
+    return np.tanh(x)
 
 
-def derivative_relu(input: np.ndarray):
+def derivative_relu(x: np.ndarray):
     """ Derivative of ReLU activation function """
-    mf = lambda x: 1 if x > 0 else 0
+    mf = lambda y: 1 if y > 0 else 0
     mf_v = np.vectorize(mf)
 
-    return mf_v(input)
+    return mf_v(x)
 
 
 def gaussian_initialization(input_dim, output_dim):
@@ -67,7 +67,7 @@ activation_functions = {
 
 
 derivate_activation_functions = {
-    'linear': lambda x: 1,
+    'linear': lambda _: 1,
     'relu': derivative_relu,
     'sigmoid': derivate_sigmoid,
     #'tahn': derivate_tahn
@@ -111,38 +111,35 @@ class Network:
         layer.initialize_weights(prev_dim)
         prev_dim = layer.output_dim
     
-    # TODO: changed forward_set in Layer
-    def forward_step(self, input: np.ndarray):
+    def forward_step(self, net_input: np.ndarray):
       """
         A forward step of the network
         Args:
-            input: (np.array) of initial net values
+            net_input: (np.array) of initial net values
         Returns:
             value: network's output
       """
-      value = input
+      value = net_input
       for layer in self.layers:
         value = layer.forward_step(value)
       return value
     
-    def _bp_delta_weights(self, input: np.array, target: np.array): # return lista tuple (matrice delle derivate, vettore delle derivate biases)
+    def _bp_delta_weights(self, net_input: np.array, target: np.array): # return lista tuple (matrice delle derivate, vettore delle derivate biases)
       """
         Function that compute deltaW according to backpropagation algorithm
         Args:
-            input: (np.array) initial net values
+            net_input: (np.array) initial net values
             target: the target value
         Returns:
             output: deltasW
       """
       deltas = []
       # forward phase, calcolare gli output a tutti i livelli partendo dall'input (net, out)
-      fw_out = self.forward_step(input)
+      fw_out = self.forward_step(net_input)
       
       dE_dO = self.loss.derivate(target, fw_out)
       # backward phase, calcolare i delta partendo dal livello di output
-      dE_dO, gradient_w, gradient_b = self.layers[-1].backpropagate_delta(dE_dO)
-      deltas.append((-gradient_w, -gradient_b))
-      for layer in reversed(self.layers[:-1]):
+      for layer in reversed(self.layers):
         dE_dO, gradient_w, gradient_b = layer.backpropagate_delta(dE_dO)
         deltas.append((-gradient_w, -gradient_b))
       
@@ -199,10 +196,15 @@ class Network:
 
       if type(batch_size) is str and batch_size == "full":
         batch_size = l
+      elif type(batch_size) is str and batch_size != "full":
+        raise Exception()
+      elif batch_size > l or batch_size <= 0:
+        batch_size = l
 
       for i in range(epochs):
 
         for batch_number in range(math.ceil(l//batch_size)):
+          # sum deltas over the batch
           deltas = None
 
           batch_iterations = 0
@@ -215,10 +217,10 @@ class Network:
             if not deltas:
               deltas = self._bp_delta_weights(x, y)
             else:
-              updates = self._bp_delta_weights(x, y)
-              for d_i, (update_w, update_b) in enumerate(updates):
+              update_deltas = self._bp_delta_weights(x, y)
+              for d_i, (update_delta_w, update_delta_b) in enumerate(update_deltas):
                 delta_w, delta_b = deltas[d_i]
-                deltas[d_i] = (delta_w + update_w, delta_b + update_b)
+                deltas[d_i] = (delta_w + update_delta_w, delta_b + update_delta_b)
 
           # at this point we have delta summed-up to all batch instances
           # let's average it
@@ -241,10 +243,6 @@ class Network:
           print(f"epoch {i}: error_tr = {epoch_error_tr} | error_vl = {epoch_error_vl}")
         else:
           print(f"epoch {i}: error_tr = {epoch_error_tr}")
-
-        
-        
-        
 
       return history
 
@@ -294,15 +292,15 @@ class Layer:
       self.input_dim = input_dim
       self.weights_matrix, self.bias = self.initialization(self.input_dim, self.output_dim)
 
-    def forward_step(self, input: np.ndarray):
+    def forward_step(self, net_input: np.ndarray):
       """
         Function that implement a layer forward step
         Args:
-            input: (np.array) initial net values
+            net_input: (np.array) initial net values
         Returns:
             output: layer's output
       """
-      self._input = input
+      self._input = net_input
       self._net = np.matmul(self.weights_matrix, self._input)
       self._net = np.add(self._net, self.bias)
       self._output = self.activation(self._net)
@@ -322,10 +320,6 @@ class Layer:
       dE_dNet = upper_dE_dO * self.activation_derivate(self._net)
       gradient_w = np.transpose(dE_dNet[np.newaxis, :]) @ self._input[np.newaxis, :] 
       gradient_b = dE_dNet
-
-      # gradient_w.resize(self.weights_matrix.shape)
-      # gradient_b.resize(self.bias.shape)
-
       # calculate the dE_dO to pass to the previous layer
       current_dE_do = np.array([(np.dot(dE_dNet, self.weights_matrix[:, j])) for j in range(self.input_dim)])
 
