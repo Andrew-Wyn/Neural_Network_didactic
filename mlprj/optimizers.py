@@ -21,7 +21,7 @@ class StochasticGradientDescent(Optimizer):
         else:
             for i, (delta_w, delta_b) in enumerate(deltas):
                 reg_w, reg_b = regs[i]
-                deltas[i] = (self.learning_rate*delta_w + reg_w, self.learning_rate*delta_b)
+                deltas[i] = (self.learning_rate*delta_w + reg_w, self.learning_rate*delta_b + reg_b)
 
         self.memory = deltas
 
