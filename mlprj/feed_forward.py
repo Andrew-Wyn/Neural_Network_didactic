@@ -174,7 +174,7 @@ class Network:
 
       return regs
 
-    def training(self, training, validation, epochs=500, batch_size=64):
+    def training(self, training, validation=None, epochs=500, batch_size=64):
       """
         Function that performs neural network training phase, choosing the minibatch size if needed
         Args:
@@ -187,7 +187,11 @@ class Network:
       """
             
       input_tr, target_tr = training
-      input_vl, target_vl = validation
+      if validation is not None:
+        input_vl, target_vl = validation
+        valid_split = True
+      else:
+        valid_split = False
       
       history = {"loss_tr": [], "loss_vl": []}
 
@@ -229,11 +233,18 @@ class Network:
           self._apply_deltas(optimized_deltas)
 
         epoch_error_tr = self.compute_total_error(input_tr, target_tr)
-        epoch_error_vl = self.compute_total_error(input_vl, target_vl)
-
-        print(f"epoch {i}: error_tr = {epoch_error_tr} | error_vl = {epoch_error_vl}")
         history["loss_tr"].append(epoch_error_tr)
-        history["loss_vl"].append(epoch_error_vl)
+
+        if valid_split:
+          epoch_error_vl = self.compute_total_error(input_vl, target_vl)
+          history["loss_vl"].append(epoch_error_vl)
+          print(f"epoch {i}: error_tr = {epoch_error_tr} | error_vl = {epoch_error_vl}")
+        else:
+          print(f"epoch {i}: error_tr = {epoch_error_tr}")
+
+        
+        
+        
 
       return history
 
@@ -314,7 +325,7 @@ class Layer:
 
       # gradient_w.resize(self.weights_matrix.shape)
       # gradient_b.resize(self.bias.shape)
-      
+
       # calculate the dE_dO to pass to the previous layer
       current_dE_do = np.array([(np.dot(dE_dNet, self.weights_matrix[:, j])) for j in range(self.input_dim)])
 
