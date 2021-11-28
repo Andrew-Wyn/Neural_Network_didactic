@@ -123,7 +123,15 @@ class Network:
       for layer in self.layers:
         value = layer.forward_step(value)
       return value
-    
+
+    def predict(self, inputs):
+      preds = []
+
+      for net_input in inputs:
+        preds.append(self.forward_step(net_input))
+
+      return np.array(preds)
+
     def _bp_delta_weights(self, net_input: np.array, target: np.array): # return lista tuple (matrice delle derivate, vettore delle derivate biases)
       """
         Function that compute deltaW according to backpropagation algorithm
