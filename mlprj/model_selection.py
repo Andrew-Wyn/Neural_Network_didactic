@@ -152,7 +152,7 @@ def grid_search_cv(build_model, dataset, params:dict):
         ax.plot(loss_tr)
         ax.plot(loss_vl)
 
-        result = min(loss_vl)
+        result = loss_vl[-1]
 
         if best_result > result:
            best_result = result
@@ -219,7 +219,7 @@ def grid_search(build_model, train_data, valid_data, params:dict):
         ax.plot(loss_tr)
         ax.plot(loss_vl)
 
-        result = min(loss_vl)
+        result = loss_vl[-1]
 
         if best_result > result:
            best_result = result
