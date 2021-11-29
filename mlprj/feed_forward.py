@@ -35,29 +35,6 @@ def derivative_relu(x: np.ndarray):
     return mf_v(x)
 
 
-def gaussian_initialization(input_dim, output_dim):
-    """Weights Gaussian initialization"""
-    return np.random.normal(size = (output_dim, input_dim)), np.random.normal(size = output_dim)
-
-
-def uniform_initialization(input_dim, output_dim, distribution_range):
-    """Weights Uniform initialization"""
-    a, b = distribution_range
-    return np.random.uniform(low = a, high = b, size = (output_dim, input_dim)), np.random.uniform(low = a, high= b, size = output_dim)
-
-
-def constant_initialization(input_dim, output_dim, value):
-    """Weights constant initialization"""
-    return np.full(shape = (output_dim, input_dim), fill_value=value), np.full(shape = output_dim, fill_value=value)
-
-
-initialization_functions = {
-    'gaussian': gaussian_initialization,
-    'uniform': uniform_initialization,
-    'constant_initialization' : constant_initialization,
-}
-
-
 activation_functions = {
     'linear': linear,
     'relu': relu,
@@ -179,7 +156,7 @@ class Network:
 
       return regs
 
-    def training(self, training, validation=None, epochs=500, batch_size=64):
+    def training(self, training, validation=None, epochs=500, batch_size=64, verbose=False):
       """
         Function that performs neural network training phase, choosing the minibatch size if needed
         Args:
@@ -248,9 +225,11 @@ class Network:
         if valid_split:
           epoch_error_vl = self.compute_total_error(input_vl, target_vl)
           history["loss_vl"].append(epoch_error_vl)
-          print(f"epoch {i}: error_tr = {epoch_error_tr} | error_vl = {epoch_error_vl}")
+          if verbose:
+            print(f"epoch {i}: error_tr = {epoch_error_tr} | error_vl = {epoch_error_vl}")
         else:
-          print(f"epoch {i}: error_tr = {epoch_error_tr}")
+          if verbose:
+            print(f"epoch {i}: error_tr = {epoch_error_tr}")
 
       return history
 
@@ -277,7 +256,7 @@ class Layer:
             initialization: (str) name of the initialization procedure
             initialization_parameters: (dict) hyperparameters
     """
-    def __init__(self, output_dim, activation, initialization, initialization_parameters={}):
+    def __init__(self, output_dim, activation, initializer):
         self.input_dim = None # if it's not setted, not "compiled" the nn
         self.output_dim = output_dim 
         self.weights_matrix = None
@@ -285,7 +264,7 @@ class Layer:
         self.activation = activation_functions[activation]
         self.activation_derivate = derivate_activation_functions[activation]
 
-        self.initialization = lambda input_dim, output_dim: initialization_functions[initialization](input_dim, output_dim, **initialization_parameters)
+        self.initializer = initializer
 
         self._input = None
         self._net = None
@@ -298,7 +277,7 @@ class Layer:
             input_dim: (int) the dimension of the input
       """
       self.input_dim = input_dim
-      self.weights_matrix, self.bias = self.initialization(self.input_dim, self.output_dim)
+      self.weights_matrix, self.bias = self.initializer.initialize(self.input_dim, self.output_dim)
 
     def forward_step(self, net_input: np.ndarray):
       """

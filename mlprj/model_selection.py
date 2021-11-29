@@ -3,7 +3,6 @@ import math
 
 from typing import List
 
-
 from .losses import *
 from .regularizers import *
 
@@ -12,14 +11,23 @@ import matplotlib.pyplot as plt
 
 from multiprocessing import Process, Queue
 
-def grid_parallel(shared_queue, model, train_data, valid_data, training_params):
-
-    history = model.training(train_data, valid_data, **training_params)
-    
-    shared_queue.put((search_param, min(history["loss_vl"])))
+from functools import partial
 
 
 keys_training_params = ["epochs", "batch_size"] 
+
+
+def grid_parallel(shared_queue, model, train_data, valid_data, training_params, search_param):
+    history = model.training(train_data, valid_data, **training_params)
+    shared_queue.put((search_param, history["loss_tr"], history["loss_vl"]))
+    print(search_param, "  : done!!")
+
+
+def grid_parallel_cv(build_model, shared_queue, dataset, static_params, search_param):
+    loss_tr_cv, loss_vl_cv = cross_validation(build_model, dataset, {**static_params, **search_param})
+    shared_queue.put((search_param, loss_tr_cv, loss_vl_cv))
+    print(search_param, " : done!!")
+
 
 def make_plot_grid(search_params):
     num_params = len(search_params)
@@ -107,12 +115,11 @@ def grid_search_cv(build_model, dataset, params:dict):
     params = dictionary of parameters 
     """
     static_params, search_params = split_search_params(params)
+    shared_queue = Queue()
 
-    fig, spec, num_cols, num_rows = make_plot_grid(search_params)
+    jobs = []
 
-    best_result = np.inf
-    best_combination = None
-    for j, param_combination in enumerate(itertools.product(*search_params.values())):
+    for param_combination in itertools.product(*search_params.values()):
         # create dictionary for params
         search_param = {}
         for i, param_key in enumerate(search_params.keys()):
@@ -120,33 +127,41 @@ def grid_search_cv(build_model, dataset, params:dict):
 
         print("-> ", search_param)
 
-        loss_tr_cv, loss_vl_cv = cross_validation(build_model, dataset, {**static_params, **search_param})
+        # here i have data to pass to the workers
+        p = Process(target=partial(grid_parallel_cv, build_model), args=(shared_queue, dataset, static_params, search_param))
+        jobs.append(p)
+        p.start()
 
+    for proc in jobs:
+        proc.join()
+
+    gs_results = []
+    while not shared_queue.empty():
+        gs_results.append(shared_queue.get())
+
+    fig, spec, num_cols, _ = make_plot_grid(search_params)
+    best_result = np.inf
+    best_combination = None
+    for j, (search_param, loss_tr, loss_vl)  in enumerate(gs_results):
         col = j%num_cols
         row = j//num_cols
 
-        print(row, col)
-
         ax = fig.add_subplot(spec[row, col])
+        ax.title.set_text(search_param)
         
-        ax.plot(loss_tr_cv)
-        ax.plot(loss_vl_cv)
+        ax.plot(loss_tr)
+        ax.plot(loss_vl)
 
-        result = min(loss_vl_cv)
+        result = min(loss_vl)
 
         if best_result > result:
-            best_result = result
-            best_combination = param_combination
-
-    # create dictionary for best params
-    best_param = {}
-    for i, param_key in enumerate(search_params.keys()):
-        best_param[param_key] = best_combination[i]
+           best_result = result
+           best_combination = search_param
 
     plt.show()
     plt.clf()
 
-    return best_param
+    return best_combination
 
 
 # drop to the build_model the task to assign the params to build the model
@@ -163,7 +178,8 @@ def grid_search(build_model, train_data, valid_data, params:dict):
     static_params, search_params = split_search_params(params)
     shared_queue = Queue()
 
-    for param_combination in itertools.product(*search_params.values()):
+    jobs = []
+    for j, param_combination in enumerate(itertools.product(*search_params.values())):
         # create dictionary for params
         search_param = {}
         for i, param_key in enumerate(search_params.keys()):
@@ -176,21 +192,41 @@ def grid_search(build_model, train_data, valid_data, params:dict):
         model = build_model(**build_params)
 
         # here i have data to pass to the workers
-        jobs = []
-        p = Process(target=grid_parallel, args=(shared_queue, model, train_data, valid_data, training_params))
+    
+        p = Process(target=grid_parallel, args=(shared_queue, model, train_data, valid_data, training_params, search_param))
         jobs.append(p)
         p.start()
 
     for proc in jobs:
         proc.join()
 
+    gs_results = []
     while not shared_queue.empty():
-        print(shared_queue.get())
-
-    # create dictionary for best params
-    # best_param = {}
-    # for i, param_key in enumerate(search_params.keys()):
-    #     best_param[param_key] = best_combination[i]
+        gs_results.append(shared_queue.get())
     
-    # return best_param
+    print(len(gs_results))
+
+    fig, spec, num_cols, _ = make_plot_grid(search_params)
+    best_result = np.inf
+    best_combination = None
+    for j, (search_param, loss_tr, loss_vl)  in enumerate(gs_results):
+        col = j%num_cols
+        row = j//num_cols
+
+        ax = fig.add_subplot(spec[row, col])
+        ax.title.set_text(search_param)
+        
+        ax.plot(loss_tr)
+        ax.plot(loss_vl)
+
+        result = min(loss_vl)
+
+        if best_result > result:
+           best_result = result
+           best_combination = search_param
+
+    plt.show()
+    plt.clf()
+
+    return best_combination
         
