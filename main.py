@@ -12,21 +12,18 @@ import matplotlib.pyplot as plt
 
 from sklearn.model_selection import train_test_split
 
-train_x, test_x, train_y, test_y = read_monk(2)
+if __name__ == '__main__':
+    train_x, test_x, train_y, test_y = read_monk(2)
 
-nn = Network(
-    17,
-    [Layer(4, "relu", "uniform", {"distribution_range":(-0.25, 0.25)}),
-    Layer(1,"sigmoid", "uniform", {"distribution_range":(-0.25, 0.25)})]
-)
+    def build_model(lambda_, alpha):
+        nn = Network(
+            17,
+            [Layer(4, "relu", "uniform", {"distribution_range":(-0.25, 0.25)}),
+            Layer(1,"sigmoid", "uniform", {"distribution_range":(-0.25, 0.25)})]
+        )
 
-nn.compile(loss=MSE(), regularizer=L2_regularizer(0), optimizer=StochasticGradientDescent(0.8, 0.8))
+        nn.compile(loss=MSE(), regularizer=L2_regularizer(0), optimizer=StochasticGradientDescent(0.8, 0.8))
 
-history = nn.training((train_x, train_y), epochs=500, batch_size="full")
+        return nn
 
-accs = model_accuracy(nn, test_x, test_y)
-
-print(accs)
-
-plt.plot(history["loss_tr"])
-plt.show()
+    best_params = grid_search(build_model, (train_x, train_y), (test_x, test_y), {"lambda_":[0.1, 0.2], "alpha":[0.1, 0.2], "epochs":200, "batch_size":64})

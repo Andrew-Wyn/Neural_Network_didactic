@@ -10,6 +10,14 @@ from .regularizers import *
 import numpy as np
 import matplotlib.pyplot as plt
 
+from multiprocessing import Process, Queue
+
+def grid_parallel(shared_queue, model, train_data, valid_data, training_params):
+
+    history = model.training(train_data, valid_data, **training_params)
+    
+    shared_queue.put((search_param, min(history["loss_vl"])))
+
 
 keys_training_params = ["epochs", "batch_size"] 
 
@@ -153,9 +161,8 @@ def grid_search(build_model, train_data, valid_data, params:dict):
     """
 
     static_params, search_params = split_search_params(params)
+    shared_queue = Queue()
 
-    best_result = np.inf
-    best_combination = None
     for param_combination in itertools.product(*search_params.values()):
         # create dictionary for params
         search_param = {}
@@ -163,24 +170,27 @@ def grid_search(build_model, train_data, valid_data, params:dict):
             search_param[param_key] = param_combination[i]
 
         print("-> ", search_param)
-        
+                
         build_params, training_params = split_train_params({**static_params, **search_param})
-        
+
         model = build_model(**build_params)
-        history = model.training(train_data, valid_data, **training_params)
-        
-        result = min(history["loss_vl"])
 
-        print(result)
+        # here i have data to pass to the workers
+        jobs = []
+        p = Process(target=grid_parallel, args=(shared_queue, model, train_data, valid_data, training_params))
+        jobs.append(p)
+        p.start()
 
-        if best_result > result:
-            best_result = result
-            best_combination = param_combination
-    
+    for proc in jobs:
+        proc.join()
+
+    while not shared_queue.empty():
+        print(shared_queue.get())
+
     # create dictionary for best params
-    best_param = {}
-    for i, param_key in enumerate(search_params.keys()):
-        best_param[param_key] = best_combination[i]
+    # best_param = {}
+    # for i, param_key in enumerate(search_params.keys()):
+    #     best_param[param_key] = best_combination[i]
     
-    return best_param
+    # return best_param
         
