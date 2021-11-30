@@ -9,7 +9,7 @@ from .regularizers import *
 import numpy as np
 import matplotlib.pyplot as plt
 
-from multiprocessing import Process, Queue
+from multiprocessing import Pool, Manager
 
 from functools import partial
 
@@ -115,10 +115,10 @@ def grid_search_cv(build_model, dataset, params:dict):
     params = dictionary of parameters 
     """
     static_params, search_params = split_search_params(params)
-    shared_queue = Queue()
+    m = Manager()
+    shared_queue = m.Queue()
 
-    jobs = []
-
+    pool = Pool() # use all available cores, otherwise specify the number you want as an argument
     for param_combination in itertools.product(*search_params.values()):
         # create dictionary for params
         search_param = {}
@@ -128,12 +128,10 @@ def grid_search_cv(build_model, dataset, params:dict):
         print("-> ", search_param)
 
         # here i have data to pass to the workers
-        p = Process(target=partial(grid_parallel_cv, build_model), args=(shared_queue, dataset, static_params, search_param))
-        jobs.append(p)
-        p.start()
-
-    for proc in jobs:
-        proc.join()
+        pool.apply_async(partial(grid_parallel_cv, build_model), (shared_queue, dataset, static_params, search_param))
+        
+    pool.close()
+    pool.join()
 
     gs_results = []
     while not shared_queue.empty():
@@ -176,9 +174,10 @@ def grid_search(build_model, train_data, valid_data, params:dict):
     """
 
     static_params, search_params = split_search_params(params)
-    shared_queue = Queue()
+    m = Manager()
+    shared_queue = m.Queue()
 
-    jobs = []
+    pool = Pool() # use all available cores, otherwise specify the number you want as an argument
     for j, param_combination in enumerate(itertools.product(*search_params.values())):
         # create dictionary for params
         search_param = {}
@@ -193,12 +192,11 @@ def grid_search(build_model, train_data, valid_data, params:dict):
 
         # here i have data to pass to the workers
     
-        p = Process(target=grid_parallel, args=(shared_queue, model, train_data, valid_data, training_params, search_param))
-        jobs.append(p)
-        p.start()
+        pool.apply_async(grid_parallel, args=(shared_queue, model, train_data, valid_data, training_params, search_param))
 
-    for proc in jobs:
-        proc.join()
+
+    pool.close()
+    pool.join()
 
     gs_results = []
     while not shared_queue.empty():
