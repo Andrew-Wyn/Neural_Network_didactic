@@ -45,6 +45,32 @@ def make_plot_grid(search_params):
     return fig, spec, num_cols, num_rows
 
 
+def best_comb_plot_grid(gs_results, search_params):
+    fig, spec, num_cols, _ = make_plot_grid(search_params)
+    best_result = np.inf
+    best_combination = None
+    for j, (search_param, loss_tr, loss_vl)  in enumerate(gs_results):
+        col = j%num_cols
+        row = j//num_cols
+
+        ax = fig.add_subplot(spec[row, col])
+        ax.title.set_text(search_param)
+
+        ax.plot(loss_tr)
+        ax.plot(loss_vl)
+
+        result = loss_vl[-1]
+
+        if best_result > result:
+           best_result = result
+           best_combination = search_param
+
+    plt.show()
+    plt.clf()
+
+    return best_combination
+
+
 def split_train_params(params):
     """
     Splitting training parameters with epochs and batch_size
@@ -137,29 +163,7 @@ def grid_search_cv(build_model, dataset, params:dict):
     while not shared_queue.empty():
         gs_results.append(shared_queue.get())
 
-    fig, spec, num_cols, _ = make_plot_grid(search_params)
-    best_result = np.inf
-    best_combination = None
-    for j, (search_param, loss_tr, loss_vl)  in enumerate(gs_results):
-        col = j%num_cols
-        row = j//num_cols
-
-        ax = fig.add_subplot(spec[row, col])
-        ax.title.set_text(search_param)
-        
-        ax.plot(loss_tr)
-        ax.plot(loss_vl)
-
-        result = loss_vl[-1]
-
-        if best_result > result:
-           best_result = result
-           best_combination = search_param
-
-    plt.show()
-    plt.clf()
-
-    return best_combination
+    return best_comb_plot_grid(gs_results, search_param)
 
 
 # drop to the build_model the task to assign the params to build the model
@@ -178,7 +182,7 @@ def grid_search(build_model, train_data, valid_data, params:dict):
     shared_queue = m.Queue()
 
     pool = Pool() # use all available cores, otherwise specify the number you want as an argument
-    for j, param_combination in enumerate(itertools.product(*search_params.values())):
+    for param_combination in itertools.product(*search_params.values()):
         # create dictionary for params
         search_param = {}
         for i, param_key in enumerate(search_params.keys()):
@@ -191,9 +195,7 @@ def grid_search(build_model, train_data, valid_data, params:dict):
         model = build_model(**build_params)
 
         # here i have data to pass to the workers
-    
         pool.apply_async(grid_parallel, args=(shared_queue, model, train_data, valid_data, training_params, search_param))
-
 
     pool.close()
     pool.join()
@@ -202,29 +204,4 @@ def grid_search(build_model, train_data, valid_data, params:dict):
     while not shared_queue.empty():
         gs_results.append(shared_queue.get())
     
-    print(len(gs_results))
-
-    fig, spec, num_cols, _ = make_plot_grid(search_params)
-    best_result = np.inf
-    best_combination = None
-    for j, (search_param, loss_tr, loss_vl)  in enumerate(gs_results):
-        col = j%num_cols
-        row = j//num_cols
-
-        ax = fig.add_subplot(spec[row, col])
-        ax.title.set_text(search_param)
-        
-        ax.plot(loss_tr)
-        ax.plot(loss_vl)
-
-        result = loss_vl[-1]
-
-        if best_result > result:
-           best_result = result
-           best_combination = search_param
-
-    plt.show()
-    plt.clf()
-
-    return best_combination
-        
+    return best_comb_plot_grid(gs_results, search_param)
