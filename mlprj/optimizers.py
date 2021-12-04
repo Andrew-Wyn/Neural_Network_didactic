@@ -5,6 +5,7 @@ class Optimizer:
     def optimize(self):
         raise NotImplementedError()
 
+
 class StochasticGradientDescent(Optimizer):
     def __init__(self, learning_rate, alpha):
         self.learning_rate = learning_rate

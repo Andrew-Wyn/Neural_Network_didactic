@@ -24,6 +24,7 @@ class MSE(Loss):
     def derivate(self, target, output):
         return -2*(target - output)
 
+
 class MEE(Loss):
     
     def __init__(self):

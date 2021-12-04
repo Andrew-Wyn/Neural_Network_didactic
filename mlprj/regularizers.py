@@ -9,7 +9,7 @@ class Regularizer():
         raise NotImplementedError()
 
 
-class L2_regularizer(Regularizer):
+class L2Regularizer(Regularizer):
 
     def __init__(self, lambda_):
         self.lambda_ = lambda_
@@ -17,7 +17,8 @@ class L2_regularizer(Regularizer):
     def regularize(self, weights):
         return -self.lambda_*2*weights
 
-class L1_regularization(Regularizer):
+
+class L1Regularizer(Regularizer):
 
     def __init__(self, lambda_):
         self.lambda_ = lambda_
