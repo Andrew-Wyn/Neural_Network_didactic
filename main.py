@@ -21,7 +21,7 @@ def build_model(lambda_, alpha):
         Layer(1,"sigmoid", GaussianInitializer())]
     )
 
-    nn.compile(loss=MSE(), regularizer=L2_regularizer(0), optimizer=StochasticGradientDescent(lambda_, alpha))
+    nn.compile(loss=MSE(), regularizer=L2Regularizer(0), optimizer=StochasticGradientDescent(lambda_, alpha))
 
     return nn
 

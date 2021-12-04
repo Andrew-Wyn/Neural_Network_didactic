@@ -23,7 +23,7 @@ def grid_parallel(shared_queue, model, train_data, valid_data, training_params, 
     print(search_param, "  : done!!")
 
 
-def grid_parallel_cv(build_model, shared_queue, dataset, static_params, search_param):
+def grid_parallel_cv(shared_queue, build_model, dataset, static_params, search_param):
     loss_tr_cv, loss_vl_cv = cross_validation(build_model, dataset, {**static_params, **search_param})
     shared_queue.put((search_param, loss_tr_cv, loss_vl_cv))
     print(search_param, " : done!!")
@@ -154,7 +154,7 @@ def grid_search_cv(build_model, dataset, params:dict):
         print("-> ", search_param)
 
         # here i have data to pass to the workers
-        pool.apply_async(partial(grid_parallel_cv, build_model), (shared_queue, dataset, static_params, search_param))
+        pool.apply_async(grid_parallel_cv, (shared_queue, build_model, dataset, static_params, search_param))
         
     pool.close()
     pool.join()
@@ -163,7 +163,7 @@ def grid_search_cv(build_model, dataset, params:dict):
     while not shared_queue.empty():
         gs_results.append(shared_queue.get())
 
-    return best_comb_plot_grid(gs_results, search_param)
+    return best_comb_plot_grid(gs_results, search_params)
 
 
 # drop to the build_model the task to assign the params to build the model
@@ -204,4 +204,4 @@ def grid_search(build_model, train_data, valid_data, params:dict):
     while not shared_queue.empty():
         gs_results.append(shared_queue.get())
     
-    return best_comb_plot_grid(gs_results, search_param)
+    return best_comb_plot_grid(gs_results, search_params)
