@@ -27,6 +27,11 @@ def tanh(x: np.ndarray):
     return np.tanh(x)
 
 
+def derivative_tanh(x: np.ndarray):
+  """ Derivative of hyperbolic tangent function (TanH) """
+  return 1 - np.tanh(x)**2
+
+
 def derivative_relu(x: np.ndarray):
     """ Derivative of ReLU activation function """
     mf = lambda y: 1 if y > 0 else 0
@@ -39,7 +44,7 @@ activation_functions = {
     'linear': linear,
     'relu': relu,
     'sigmoid': sigmoid,
-    #'tahn': tahn
+    'tanh': tanh
 }
 
 
@@ -47,7 +52,7 @@ derivate_activation_functions = {
     'linear': lambda _: 1,
     'relu': derivative_relu,
     'sigmoid': derivate_sigmoid,
-    #'tahn': derivate_tahn
+    'tanh': derivative_tanh
 }
 
 
