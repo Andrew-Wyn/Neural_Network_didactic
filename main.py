@@ -28,7 +28,6 @@ def build_model(lambda_, alpha):
 if __name__ == '__main__':
     train_x, test_x, train_y, test_y = read_monk(2)
 
-
     best_params = grid_search_cv(build_model, (train_x, train_y), {"lambda_":[0.5, 0.7], "alpha":[0.5, 0.7], "epochs":[50, 10], "batch_size":"full"})
 
     print(best_params)

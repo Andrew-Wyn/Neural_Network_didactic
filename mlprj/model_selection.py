@@ -163,7 +163,7 @@ def grid_search_cv(build_model, dataset, params:dict):
     while not shared_queue.empty():
         gs_results.append(shared_queue.get())
 
-    return best_comb_plot_grid(gs_results, search_params)
+    return {**best_comb_plot_grid(gs_results, search_params), **static_params}
 
 
 # drop to the build_model the task to assign the params to build the model
@@ -204,4 +204,4 @@ def grid_search(build_model, train_data, valid_data, params:dict):
     while not shared_queue.empty():
         gs_results.append(shared_queue.get())
     
-    return best_comb_plot_grid(gs_results, search_params)
+    return {**best_comb_plot_grid(gs_results, search_params), **static_params}
