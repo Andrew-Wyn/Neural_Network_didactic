@@ -33,12 +33,15 @@ if __name__ == '__main__':
 
     nn = RandomizedNetwork(17,
     [
-    RandomizedLayer(10000),
+    RandomizedLayer(10, "tanh"),
+    RandomizedLayer(100, "relu"),
+    RandomizedLayer(100, "tanh"),
+    RandomizedLayer(1000, "tanh"),
     RandomizedLayer(1, "sigmoid")])
 
-    nn.compile(loss=MSE(), regularizer=L2Regularizer(0.001), optimizer=StochasticGradientDescent(0.05, 0.1))
+    nn.compile(loss=MSE(), regularizer=L2Regularizer(0), optimizer=StochasticGradientDescent(0.9, 0.9))
 
-    nn.training((train_x, train_y), (valid_x, valid_y), epochs=2000, batch_size="full", verbose=True)
+    nn.training((X, y), epochs=10000, batch_size="full", verbose=True)
 
     # best_params = grid_search_cv(build_model, (train_x, train_y), {"lambda_":[0.5, 0.7], "alpha":[0.5, 0.7], "epochs":[50, 10], "batch_size":"full"})
 

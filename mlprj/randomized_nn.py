@@ -72,7 +72,7 @@ class RandomizedNetwork:
         dE_dO = self.loss.derivate(target, fw_out)
         gradient_w, gradient_b = self.last_layer.calculate_gradient(dE_dO)
         
-        return gradient_w, gradient_b
+        return -gradient_w, -gradient_b
 
     def _apply_deltas(self, deltas):
         delta_w, delta_b = deltas
@@ -232,4 +232,4 @@ class RandomizedLayer:
         gradient_w = np.transpose(dE_dNet[np.newaxis, :]) @ self._input[np.newaxis, :] 
         gradient_b = dE_dNet
 
-        return -gradient_w, -gradient_b
+        return gradient_w, gradient_b
