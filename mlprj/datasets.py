@@ -14,8 +14,9 @@ def get_preprocess_monk(stream):
     ds = ds.sample(frac=1)
     labels = ds.pop('a0')
 
-    ds = OneHotEncoder().fit_transform(ds).toarray().astype(np.float32)
-
+    #ds = OneHotEncoder().fit_transform(ds).toarray().astype(np.float32)
+    ds = ds.to_numpy()
+    
     labels = labels.to_numpy()[:, np.newaxis]
 
     return ds, labels
@@ -42,6 +43,6 @@ def read_cup():
     train = train_ds[['a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7', 'a8', 'a9', 'a10']].to_numpy()
     labels = train_ds[['t1', 't2']].to_numpy()
 
-    #train = StandardScaler().fit_transform(train)
+    train = StandardScaler().fit_transform(train)
     
     return train, labels

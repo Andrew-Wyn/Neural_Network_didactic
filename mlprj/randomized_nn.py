@@ -1,6 +1,8 @@
 import numpy as np
 import math
 
+from scipy.linalg import pinv
+
 from .activations import *
 from .initializers import *
 
@@ -89,6 +91,49 @@ class RandomizedNetwork:
         reg_b = self.regularizer.regularize(self.last_layer.bias)
 
         return reg_w, reg_b
+
+    def direct_training(self, training, validation=None, lambda_=0, verbose=False):
+      input_tr, target_tr = training
+
+      valid_split = False
+
+      if validation:
+        input_vl, target_vl = validation
+        valid_split = True
+
+      # transform input data to high dim rand layer
+      transformed_train = []
+      for sample in input_tr:
+        transformed_sample = sample
+        for layer in self.layers:
+            transformed_sample = layer.forward_step(transformed_sample)
+        transformed_train.append(transformed_sample)
+
+      transformed_train = np.array(transformed_train)
+
+      # output_weights = np.dot(pinv(transformed_train), target_tr)
+
+      hidden_layer_dim = self.layers[-1].output_dim
+
+      print((lambda_ * np.identity(hidden_layer_dim)).shape)
+
+      output_weights = np.linalg.lstsq(transformed_train.T.dot(transformed_train) + lambda_ * np.identity(hidden_layer_dim), transformed_train.T.dot(target_tr), rcond=None)[0]
+
+      print(len(output_weights))
+
+      self.last_layer.weights_matrix = output_weights.T
+      self.last_layer.bias = np.zeros(self.last_layer.bias.shape)
+
+      error_tr = self.compute_total_error(input_tr, target_tr)
+
+      if valid_split:
+        error_vl = self.compute_total_error(input_vl, target_vl)
+        if verbose:
+          print(f"error_tr = {error_tr} | error_vl = {error_vl}")
+      else:
+        if verbose:
+          print(f"error_tr = {error_tr}")
+
 
     def training(self, training, validation=None, epochs=500, batch_size=64, verbose=False):
       """
