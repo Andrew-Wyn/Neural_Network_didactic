@@ -115,16 +115,13 @@ class RandomizedNetwork:
 
       hidden_layer_dim = self.layers[-1].output_dim
 
-      print((lambda_ * np.identity(hidden_layer_dim)).shape)
-
       output_weights = np.linalg.lstsq(transformed_train.T.dot(transformed_train) + lambda_ * np.identity(hidden_layer_dim), transformed_train.T.dot(target_tr), rcond=None)[0]
-
-      print(len(output_weights))
 
       self.last_layer.weights_matrix = output_weights.T
       self.last_layer.bias = np.zeros(self.last_layer.bias.shape)
 
       error_tr = self.compute_total_error(input_tr, target_tr)
+      error_vl = -1
 
       if valid_split:
         error_vl = self.compute_total_error(input_vl, target_vl)
@@ -134,6 +131,7 @@ class RandomizedNetwork:
         if verbose:
           print(f"error_tr = {error_tr}")
 
+      return error_tr, error_vl
 
     def training(self, training, validation=None, epochs=500, batch_size=64, verbose=False):
       """
@@ -212,7 +210,7 @@ class RandomizedNetwork:
 
       return history
 
-    def compute_total_error(self, input, target):
+    def compute_total_error(self, net_input, target):
       """
         The computation of the total error
         Args:
@@ -222,9 +220,9 @@ class RandomizedNetwork:
             output: total error
       """
       total_error = 0
-      for i in range(len(input)):
-        total_error += self.loss.compute(target[i], self.forward_step(input[i]))
-      return total_error/len(input)
+      for i in range(len(net_input)):
+        total_error += self.loss.compute(target[i], self.forward_step(net_input[i]))
+      return total_error/len(net_input)
 
 class RandomizedLayer:
     """

@@ -11,20 +11,22 @@ import matplotlib.pyplot as plt
 
 from multiprocessing import Pool, Manager
 
-from functools import partial
-
-
 keys_training_params = ["epochs", "batch_size"] 
+keys_training_params_direct = ["lambda_"]
 
 
-def grid_parallel(shared_queue, model, train_data, valid_data, training_params, search_param):
-    history = model.training(train_data, valid_data, **training_params)
-    shared_queue.put((search_param, history["loss_tr"], history["loss_vl"]))
+def grid_parallel(shared_queue, model, train_data, valid_data, direct, training_params, search_param):
+    if not direct:
+        history = model.training(train_data, valid_data, **training_params)
+        shared_queue.put((search_param, history["loss_tr"], history["loss_vl"]))
+    else:
+        loss_tr, loss_vl = model.direct_training(train_data, valid_data, **training_params)
+        shared_queue.put((search_param, loss_tr, loss_vl))
     print(search_param, "  : done!!")
 
 
-def grid_parallel_cv(shared_queue, build_model, dataset, static_params, search_param):
-    loss_tr_cv, loss_vl_cv = cross_validation(build_model, dataset, {**static_params, **search_param})
+def grid_parallel_cv(shared_queue, build_model, dataset, k_folds, direct, static_params, search_param):
+    loss_tr_cv, loss_vl_cv = cross_validation(build_model, dataset, {**static_params, **search_param}, k_folds, direct)
     shared_queue.put((search_param, loss_tr_cv, loss_vl_cv))
     print(search_param, " : done!!")
 
@@ -70,15 +72,35 @@ def best_comb_plot_grid(gs_results, search_params):
 
     return best_combination
 
+def best_comb_direct(gs_results):
+    best_result = np.inf
+    best_combination = None
+    for (search_param, loss_tr, loss_vl) in gs_results:
 
-def split_train_params(params):
+        print(f"{search_param} -> tr: {loss_tr} | vl: {loss_vl}")
+
+        if best_result > loss_vl:
+           best_result = loss_vl
+           best_combination = search_param
+
+    return best_combination
+
+
+def split_train_params(params, direct):
     """
     Splitting training parameters with epochs and batch_size
     params = parameters
     """
-    other_params = { key:value for key,value in params.items() if key not in keys_training_params}
-    training_params = { key:value for key,value in params.items() if key in keys_training_params}
+
+    if not direct:
+        keys_training = keys_training_params
+    else:
+        keys_training = keys_training_params_direct
+
+    other_params = { key:value for key,value in params.items() if key not in keys_training}
+    training_params = { key:value for key,value in params.items() if key in keys_training}
     return other_params, training_params
+
 
 def split_search_params(params):
     """
@@ -89,7 +111,7 @@ def split_search_params(params):
     return static_params, search_params
 
 
-def cross_validation(build_model, dataset: tuple, params:dict, k_folds=4):
+def cross_validation(build_model, dataset: tuple, params:dict, k_folds=4, direct=False):
     """
     Perform a k-fold cross-validation with k = k_folds.
     build_model = model architecture
@@ -102,10 +124,14 @@ def cross_validation(build_model, dataset: tuple, params:dict, k_folds=4):
     l = len(X)
     l_vl = l//k_folds
 
-    build_params, train_params = split_train_params(params)
+    build_params, train_params = split_train_params(params, direct)
 
-    loss_tr_mean = np.zeros(train_params["epochs"])
-    loss_vl_mean = np.zeros(train_params["epochs"])
+    if not direct:
+        loss_tr_mean = np.zeros(train_params["epochs"])
+        loss_vl_mean = np.zeros(train_params["epochs"])
+    else:
+        loss_tr_mean = 0
+        loss_vl_mean = 0
 
     # TODO: possibilità di utilizzare KFOLD di sklearn (?)
     for k in range(k_folds):
@@ -121,10 +147,16 @@ def cross_validation(build_model, dataset: tuple, params:dict, k_folds=4):
             valid_y = y[k*l_vl:]
 
         model = build_model(**build_params)
-        history = model.training((train_x, train_y), (valid_x, valid_y), **train_params)
 
-        loss_tr_mean += history["loss_tr"]
-        loss_vl_mean += history["loss_vl"]
+        if not direct:
+            history = model.training((train_x, train_y), (valid_x, valid_y), **train_params)
+
+            loss_tr_mean += history["loss_tr"]
+            loss_vl_mean += history["loss_vl"]
+        else:
+            loss_tr, loss_vl = model.direct_training((train_x, train_y), (valid_x, valid_y), **train_params)
+            loss_tr_mean += loss_tr
+            loss_vl_mean +=loss_vl
 
     loss_tr_mean /= k_folds
     loss_vl_mean /= k_folds
@@ -132,7 +164,7 @@ def cross_validation(build_model, dataset: tuple, params:dict, k_folds=4):
     return loss_tr_mean, loss_vl_mean
 
 
-def grid_search_cv(build_model, dataset, params:dict):
+def grid_search_cv(build_model, dataset, params:dict, k_folds=4, direct=False):
     """
     Perform a grid search in which for every n-uple of parameters we use a 4-fold cross validation
     for a better estimate of training and validation error.
@@ -154,7 +186,7 @@ def grid_search_cv(build_model, dataset, params:dict):
         print("-> ", search_param)
 
         # here i have data to pass to the workers
-        pool.apply_async(grid_parallel_cv, (shared_queue, build_model, dataset, static_params, search_param))
+        pool.apply_async(grid_parallel_cv, (shared_queue, build_model, dataset, k_folds, direct, static_params, search_param))
         
     pool.close()
     pool.join()
@@ -163,11 +195,16 @@ def grid_search_cv(build_model, dataset, params:dict):
     while not shared_queue.empty():
         gs_results.append(shared_queue.get())
 
-    return {**best_comb_plot_grid(gs_results, search_params), **static_params}
+    if not direct:
+        return_data = {**best_comb_plot_grid(gs_results, search_params), **static_params}
+    else:
+        return_data = {**best_comb_direct(gs_results), **static_params}
+
+    return return_data
 
 
 # drop to the build_model the task to assign the params to build the model
-def grid_search(build_model, train_data, valid_data, params:dict):
+def grid_search(build_model, train_data, valid_data, params:dict, direct=False):
     """
     TODO: scrivere documentazione seguendo standard pep8
     Perform a classic grid_search.
@@ -190,12 +227,12 @@ def grid_search(build_model, train_data, valid_data, params:dict):
 
         print("-> ", search_param)
                 
-        build_params, training_params = split_train_params({**static_params, **search_param})
+        build_params, training_params = split_train_params({**static_params, **search_param}, direct)
 
         model = build_model(**build_params)
 
         # here i have data to pass to the workers
-        pool.apply_async(grid_parallel, args=(shared_queue, model, train_data, valid_data, training_params, search_param))
+        pool.apply_async(grid_parallel, args=(shared_queue, model, train_data, valid_data, direct, training_params, search_param))
 
     pool.close()
     pool.join()
@@ -203,5 +240,10 @@ def grid_search(build_model, train_data, valid_data, params:dict):
     gs_results = []
     while not shared_queue.empty():
         gs_results.append(shared_queue.get())
-    
-    return {**best_comb_plot_grid(gs_results, search_params), **static_params}
+
+    if not direct:
+        return_data = {**best_comb_plot_grid(gs_results, search_params), **static_params}
+    else:
+        return_data = {**best_comb_direct(gs_results), **static_params}
+
+    return return_data

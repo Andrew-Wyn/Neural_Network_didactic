@@ -14,37 +14,31 @@ import matplotlib.pyplot as plt
 
 from sklearn.model_selection import train_test_split
 
-def build_model(lambda_, alpha):
+def build_model(hidden_neurons):
 
-    nn = Network(
-        17,
-        [Layer(4, "relu", GaussianInitializer()),
-        Layer(1,"sigmoid", GaussianInitializer())]
-    )
+    nn = RandomizedNetwork(10,
+    [
+    RandomizedLayer(hidden_neurons, "relu"),
+    RandomizedLayer(2, "linear")])
 
-    nn.compile(loss=MSE(), regularizer=L2Regularizer(0), optimizer=StochasticGradientDescent(lambda_, alpha))
+    nn.compile(loss=MEE())
 
     return nn
 
 if __name__ == '__main__':
     X, y = read_cup()
     
-    train_x, valid_x, train_y, valid_y = train_test_split(X, y, test_size=0.30)
+    train_x, test_x, train_y, test_y = train_test_split(X, y, test_size=0.10)
 
-    #train_x, test_x, train_y, test_y = read_monk(3)
+    best_params = grid_search_cv(build_model, (train_x, train_y), {"hidden_neurons":[200], "lambda_":[0.2]}, k_folds=5, direct=True)
+    
+    print(best_params)
 
-    nn = RandomizedNetwork(10,
-    [
-    RandomizedLayer(3000, "relu"),
-    RandomizedLayer(2, "linear")])
+    best_params_others, best_params_training = split_train_params(best_params, direct=True)
 
-    nn.compile(loss=MSE(), regularizer=L2Regularizer(0), optimizer=StochasticGradientDescent(0.9, 0.9))
+    model = build_model(**best_params_others)
 
-    nn.direct_training((train_x, train_y), (valid_x, valid_y), lambda_=150, verbose=True)
+    loss_tr, loss_vl = model.direct_training((train_x, train_y), **best_params_training)
 
-    #print(model_accuracy(nn, train_x, train_y))
-    #print(model_accuracy(nn, valid_x, valid_y))
+    print(f"MEE error : {model_loss(model, MEE(), test_x, test_y)}")
 
-    # best_params = grid_search_cv(build_model, (train_x, train_y), {"lambda_":[0.5, 0.7], "alpha":[0.5, 0.7], "epochs":[50, 10], "batch_size":"full"})
-
-    #print(best_params)
