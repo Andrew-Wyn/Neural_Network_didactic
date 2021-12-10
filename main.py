@@ -21,7 +21,7 @@ def build_model(hidden_neurons):
     RandomizedLayer(hidden_neurons, "relu"),
     RandomizedLayer(2, "linear")])
 
-    nn.compile(loss=MEE())
+    nn.compile(loss=MSE())
 
     return nn
 
@@ -30,7 +30,7 @@ if __name__ == '__main__':
     
     train_x, test_x, train_y, test_y = train_test_split(X, y, test_size=0.10)
 
-    best_params = grid_search_cv(build_model, (train_x, train_y), {"hidden_neurons":[200], "lambda_":[0.2]}, k_folds=5, direct=True)
+    best_params = grid_search_cv(build_model, (train_x, train_y), {"hidden_neurons":[600], "lambda_":[10]}, k_folds=5, direct=True)
     
     print(best_params)
 
