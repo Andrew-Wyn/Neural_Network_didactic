@@ -14,8 +14,7 @@ def get_preprocess_monk(stream):
     ds = ds.sample(frac=1)
     labels = ds.pop('a0')
 
-    #ds = OneHotEncoder().fit_transform(ds).toarray().astype(np.float32)
-    ds = ds.to_numpy()
+    ds = OneHotEncoder().fit_transform(ds).toarray().astype(np.float32)
     
     labels = labels.to_numpy()[:, np.newaxis]
 
