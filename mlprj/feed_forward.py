@@ -145,7 +145,6 @@ class Network:
         self.layers[i].weights_matrix += delta_w
         self.layers[i].bias += delta_b 
 
-
     def _regularize(self):
       """
         Function that returns the regularization part of the deltaW update rule
@@ -238,19 +237,20 @@ class Network:
 
       return history
 
-    def compute_total_error(self, input, target):
+    def compute_total_error(self, net_input, target):
       """
         The computation of the total error
         Args:
-            input: (np.array) initial net values
+            net_input: (np.array) initial net values
             target: the target value
         Returns:
             output: total error
       """
       total_error = 0
-      for i in range(len(input)):
-        total_error += self.loss.compute(target[i], self.forward_step(input[i]))
-      return total_error/len(input)
+      for i in range(len(net_input)):
+        total_error += self.loss.compute(target[i], self.forward_step(net_input[i]))
+      return total_error/len(net_input)
+
 
 class Layer:
     """
