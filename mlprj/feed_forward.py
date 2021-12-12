@@ -1,5 +1,8 @@
 import numpy as np
 import math
+import pickle
+import copy
+
 
 def linear(x: np.ndarray):
     """ linear activation function """
@@ -40,6 +43,10 @@ def derivative_relu(x: np.ndarray):
     return mf_v(x)
 
 
+def derivative_linear(_: np.ndarray):
+  return 1
+
+
 activation_functions = {
     'linear': linear,
     'relu': relu,
@@ -47,9 +54,8 @@ activation_functions = {
     'tanh': tanh
 }
 
-
 derivate_activation_functions = {
-    'linear': lambda _: 1,
+    'linear': derivative_linear,
     'relu': derivative_relu,
     'sigmoid': derivate_sigmoid,
     'tanh': derivative_tanh
@@ -68,13 +74,14 @@ class Network:
 
     """
     def __init__(self, input_dim: int, layers=[]):
-
       self.input_dim = input_dim
       self.layers = layers
 
       # handled by compile
       self.loss = None
       self.regularizer = None
+
+      self._tollerance = 1e-5
     
     def compile(self, loss=None, regularizer=None, optimizer=None):
       """
@@ -160,7 +167,35 @@ class Network:
 
       return regs
 
-    def training(self, training, validation=None, epochs=500, batch_size=64, verbose=False):
+    def save_model(self, path=None):
+      saved_model = {}
+ 
+      saved_model["layers"] = copy.deepcopy(self.layers)
+      saved_model["loss"] = self.loss
+      saved_model["regularizer"] = self.regularizer
+      saved_model["optimizer"] = self.optimizer
+
+      if path:
+        with open(path, "wb") as f:
+          pickle.dump(saved_model, f)
+
+      return saved_model
+
+    def load_model_from_dict(self, saved_model):
+      self.layers = saved_model["layers"]
+      self.loss = saved_model["loss"]
+      self.regularizer = saved_model["regularizer"]
+      self.optimizer = saved_model["optimizer"]
+
+    def load_model_from_file(self, path):
+      saved_model = {}
+
+      with open(path, "rb") as f:
+        saved_model = pickle.load(f)
+
+      self.load_model_from_dict(saved_model)
+
+    def training(self, training, validation=None, epochs=500, batch_size=64, early_stopping = None, verbose=False):
       """
         Function that performs neural network training phase, choosing the minibatch size if needed
         Args:
@@ -171,7 +206,13 @@ class Network:
         Returns:
             history: training and validation error for each epoch
       """
-            
+
+      self.optimizer.clear()
+
+      if (early_stopping and not validation) or (early_stopping and early_stopping < 1):
+        print("[Warning]: validation set not present the early stopping criteria can't be used or setted as not proper value")
+        early_stopping = None
+
       input_tr, target_tr = training
       if validation is not None:
         input_vl, target_vl = validation
@@ -190,13 +231,17 @@ class Network:
       elif batch_size > l or batch_size <= 0:
         batch_size = l
 
+      best_validation = np.inf
+      not_improving_epochs = 0
+      saved_model : dict = None
+
       for i in range(epochs):
 
         for batch_number in range(math.ceil(l//batch_size)):
           # sum deltas over the batch
           deltas = None
 
-          batch_iterations = 0
+          batch_iterations = 1
           for batch_i in range(batch_number*batch_size, min(batch_number*batch_size + batch_size, l)):
             batch_iterations += 1
 
@@ -228,12 +273,25 @@ class Network:
 
         if valid_split:
           epoch_error_vl = self.compute_total_error(input_vl, target_vl)
+          
+          if early_stopping and epoch_error_vl < best_validation and np.abs(epoch_error_vl - best_validation) > self._tollerance:
+            best_validation = epoch_error_vl
+            not_improving_epochs = 0
+            saved_model = self.save_model()
+          else:
+            not_improving_epochs += 1
+
           history["loss_vl"].append(epoch_error_vl)
           if verbose:
             print(f"epoch {i}: error_tr = {epoch_error_tr} | error_vl = {epoch_error_vl}")
         else:
           if verbose:
             print(f"epoch {i}: error_tr = {epoch_error_tr}")
+
+        if not_improving_epochs >= early_stopping:
+          print("early stopped !!!")
+          self.load_model_from_dict(saved_model)
+          return history
 
       return history
 

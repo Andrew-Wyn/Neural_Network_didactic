@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 
 from multiprocessing import Pool, Manager
 
-keys_training_params = ["epochs", "batch_size"] 
+keys_training_params = ["epochs", "batch_size", "early_stopping"] 
 keys_training_params_direct = ["lambda_"]
 
 

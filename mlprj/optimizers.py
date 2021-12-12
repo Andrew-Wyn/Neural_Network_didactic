@@ -2,6 +2,9 @@ class Optimizer:
     def __init__(self):
         pass
 
+    def clear(self):
+        raise NotImplementedError()
+
     def optimize(self):
         raise NotImplementedError()
 
@@ -12,6 +15,9 @@ class StochasticGradientDescent(Optimizer):
         self.alpha = alpha
 
         self.memory = None # old deltas
+
+    def clear(self):
+        self.memory = None
 
     def optimize(self, deltas, regs):        
         if self.memory:
