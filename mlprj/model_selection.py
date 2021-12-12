@@ -86,7 +86,7 @@ def best_comb_direct(gs_results):
     return best_combination
 
 
-def split_train_params(params, direct):
+def split_train_params(params, direct=False):
     """
     Splitting training parameters with epochs and batch_size
     params = parameters
