@@ -234,6 +234,7 @@ class Network:
       best_validation = np.inf
       not_improving_epochs = 0
       saved_model : dict = None
+      best_epoch = 0
 
       for i in range(epochs):
 
@@ -278,6 +279,7 @@ class Network:
             best_validation = epoch_error_vl
             not_improving_epochs = 0
             saved_model = self.save_model()
+            best_epoch = i
           else:
             not_improving_epochs += 1
 
@@ -288,9 +290,11 @@ class Network:
           if verbose:
             print(f"epoch {i}: error_tr = {epoch_error_tr}")
 
-        if not_improving_epochs >= early_stopping:
+        if early_stopping and not_improving_epochs >= early_stopping:
           print("early stopped !!!")
           self.load_model_from_dict(saved_model)
+          history["loss_tr"] = history["loss_tr"][:best_epoch+1]
+          history["loss_vl"] = history["loss_vl"][:best_epoch+1]
           return history
 
       return history

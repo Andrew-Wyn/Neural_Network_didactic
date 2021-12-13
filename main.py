@@ -46,7 +46,9 @@ if __name__ == '__main__':
     train_x, test_x, train_y, test_y = train_test_split(X, y, test_size=0.1)
 
     model = build_model()
-    model.training((train_x, train_y), (test_x, test_y), 300, "full", early_stopping=5, verbose=True)
+    history = model.training((train_x, train_y), (test_x, test_y), 300, "full", early_stopping=5, verbose=True)
+    print(history["loss_tr"])
+    print(history["loss_vl"])
     print(model_loss(model, MSE(), test_x, test_y))
     model.save_model("pippo")
     model = build_model()
