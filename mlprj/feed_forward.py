@@ -114,6 +114,9 @@ class Network:
       return value
 
     def predict(self, inputs):
+      if len(np.array(inputs).shape) == 1:
+        inputs = np.expand_dims(inputs, axis=0)
+
       preds = []
 
       for net_input in inputs:

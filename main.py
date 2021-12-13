@@ -1,4 +1,5 @@
 from numpy import histogram
+from mlprj.ensamble import *
 from mlprj.feed_forward import *
 from mlprj.optimizers import StochasticGradientDescent
 from mlprj.datasets import *
@@ -43,16 +44,15 @@ if __name__ == '__main__':
 
     train_x, test_x, train_y, test_y = read_monk(1)
 
-    best_params = grid_search_cv(build_model, (train_x, train_y), {
-        "learning_rate": [0.3, 0.4],
-        "alpha": [0.4, 0.5, 0.6, 0.7, 0.8, 0.9],
-        "epochs": 10,
-        "batch_size": "full"
-        }, 
-    k_folds=5)
-    
-    print(best_params)
+    model1 = build_model(0.3, 0.5)
 
-    best_params_others, best_params_training = split_train_params(best_params)
+    model1.training((train_x, train_y), (test_x, test_y), 100, "full", verbose=True)
 
-    print(best_params_others)
+
+    model2 = build_model(0.4, 0.1)
+
+    model2.training((train_x, train_y), (test_x, test_y), 100, "full", verbose=True)
+
+    ens = Ensamble([model1, model2])
+
+    print(model_loss(ens, MSE(), test_x, test_y))
