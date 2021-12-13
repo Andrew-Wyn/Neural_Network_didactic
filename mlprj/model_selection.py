@@ -31,48 +31,7 @@ def grid_parallel_cv(shared_queue, build_model, dataset, k_folds, direct, static
     print(search_param, " : done!!")
 
 
-def make_plot_grid(search_params):
-    num_params = len(search_params)
-
-    num_cols = 1
-    num_rows = 1
-    for i, x in enumerate(search_params.values()):
-        if i+1 > math.ceil(num_params/2):
-            num_rows *= len(x)
-        else:
-            num_cols *= len(x)
-
-    fig = plt.figure(constrained_layout=True, figsize=(3*num_cols,3*num_rows))
-    spec = fig.add_gridspec(ncols=num_cols, nrows=num_rows)
-    return fig, spec, num_cols, num_rows
-
-
-def best_comb_plot_grid(gs_results, search_params):
-    fig, spec, num_cols, _ = make_plot_grid(search_params)
-    best_result = np.inf
-    best_combination = None
-    for j, (search_param, loss_tr, loss_vl)  in enumerate(gs_results):
-        col = j%num_cols
-        row = j//num_cols
-
-        ax = fig.add_subplot(spec[row, col])
-        ax.title.set_text(search_param)
-
-        ax.plot(loss_tr)
-        ax.plot(loss_vl)
-
-        result = loss_vl[-1]
-
-        if best_result > result:
-           best_result = result
-           best_combination = search_param
-
-    plt.show()
-    plt.clf()
-
-    return best_combination
-
-def best_comb_direct(gs_results):
+def best_comb(gs_results):
     best_result = np.inf
     best_combination = None
     for (search_param, loss_tr, loss_vl) in gs_results:
@@ -126,12 +85,8 @@ def cross_validation(build_model, dataset: tuple, params:dict, k_folds=4, direct
 
     build_params, train_params = split_train_params(params, direct)
 
-    if not direct:
-        loss_tr_mean = np.zeros(train_params["epochs"])
-        loss_vl_mean = np.zeros(train_params["epochs"])
-    else:
-        loss_tr_mean = 0
-        loss_vl_mean = 0
+    loss_tr_mean = 0
+    loss_vl_mean = 0
 
     # TODO: possibilità di utilizzare KFOLD di sklearn (?)
     for k in range(k_folds):
@@ -150,13 +105,12 @@ def cross_validation(build_model, dataset: tuple, params:dict, k_folds=4, direct
 
         if not direct:
             history = model.training((train_x, train_y), (valid_x, valid_y), **train_params)
-
-            loss_tr_mean += history["loss_tr"]
-            loss_vl_mean += history["loss_vl"]
+            loss_tr_mean += history["loss_tr"][-1]
+            loss_vl_mean += history["loss_vl"][-1]
         else:
             loss_tr, loss_vl = model.direct_training((train_x, train_y), (valid_x, valid_y), **train_params)
             loss_tr_mean += loss_tr
-            loss_vl_mean +=loss_vl
+            loss_vl_mean += loss_vl
 
     loss_tr_mean /= k_folds
     loss_vl_mean /= k_folds
@@ -195,10 +149,7 @@ def grid_search_cv(build_model, dataset, params:dict, k_folds=4, direct=False):
     while not shared_queue.empty():
         gs_results.append(shared_queue.get())
 
-    if not direct:
-        return_data = {**best_comb_plot_grid(gs_results, search_params), **static_params}
-    else:
-        return_data = {**best_comb_direct(gs_results), **static_params}
+    return_data = {**best_comb(gs_results), **static_params}
 
     return return_data
 
@@ -241,9 +192,6 @@ def grid_search(build_model, train_data, valid_data, params:dict, direct=False):
     while not shared_queue.empty():
         gs_results.append(shared_queue.get())
 
-    if not direct:
-        return_data = {**best_comb_plot_grid(gs_results, search_params), **static_params}
-    else:
-        return_data = {**best_comb_direct(gs_results), **static_params}
+    return_data = {**best_comb(gs_results), **static_params}
 
     return return_data
