@@ -35,7 +35,7 @@ def build_model():
     Layer(2, "linear", GaussianInitializer())]
     )
 
-    nn.compile(loss=MSE(), regularizer=L2Regularizer(0), optimizer=StochasticGradientDescent(0.1, 0.1))
+    nn.compile(loss=MSE(), regularizer=L2Regularizer(0.0001), optimizer=StochasticGradientDescent(0.15, 0.01, (10, 0.01)))
 
     return nn
 
@@ -46,9 +46,7 @@ if __name__ == '__main__':
     train_x, test_x, train_y, test_y = train_test_split(X, y, test_size=0.1)
 
     model = build_model()
-    history = model.training((train_x, train_y), (test_x, test_y), 300, "full", early_stopping=5, verbose=True)
-    print(history["loss_tr"])
-    print(history["loss_vl"])
+    history = model.training((train_x, train_y), (test_x, test_y), 30, "full", early_stopping=20, verbose=True)
     print(model_loss(model, MSE(), test_x, test_y))
     model.save_model("pippo")
     model = build_model()

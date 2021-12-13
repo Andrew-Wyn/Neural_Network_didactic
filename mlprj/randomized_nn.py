@@ -192,7 +192,7 @@ class RandomizedNetwork:
           regs = self._regularize()
 
           # calculate the delta throught the optimizer
-          optimized_deltas = self.optimizer.optimize([deltas], [regs])
+          optimized_deltas = self.optimizer.optimize([deltas], [regs], i)
 
           self._apply_deltas(optimized_deltas[0])
 
