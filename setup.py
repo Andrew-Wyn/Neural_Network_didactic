@@ -14,8 +14,8 @@ setup(
     packages=['mlprj'],
     # Needed for dependencies
     install_requires=required,
-    include_package_data=True,
-    package_data={'': ['data/*']},
+    # include_package_data=True,
+    package_data={'mlprj': ['data/Cup/*', 'data/Monks/*']},
     # *strongly* suggested for sharing
     version='0.1',
     # The license can be anything you like
