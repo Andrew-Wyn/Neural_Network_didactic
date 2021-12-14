@@ -44,15 +44,13 @@ if __name__ == '__main__':
 
     train_x, test_x, train_y, test_y = read_monk(1)
 
-    model1 = build_model(0.3, 0.5)
+    monk_1_params = {
+        "learning_rate": [0.7, 0.8],
+        "alpha": [0.4, 0.4],
+        "epochs": 10,
+        "batch_size": "full"
+    }
 
-    model1.training((train_x, train_y), (test_x, test_y), 100, "full", verbose=True)
-
-
-    model2 = build_model(0.4, 0.1)
-
-    model2.training((train_x, train_y), (test_x, test_y), 100, "full", verbose=True)
-
-    ens = Ensamble([model1, model2])
-
-    print(model_loss(ens, MSE(), test_x, test_y))
+    monk_1_best_params = grid_search(build_model, (train_x, train_y), (test_x, test_y), monk_1_params, path="monk1.csv")
+    monk_1_best_params_other, monk_1_best_params_training = split_train_params(monk_1_best_params)
+    print(monk_1_best_params_other, monk_1_best_params_training)

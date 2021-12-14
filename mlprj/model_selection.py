@@ -1,5 +1,7 @@
 import itertools
-import math
+import csv
+import time
+import os
 
 from typing import List
 
@@ -15,10 +17,23 @@ keys_training_params = ["epochs", "batch_size", "early_stopping"]
 keys_training_params_direct = ["lambda_"]
 
 
+def save_results_to_file(keys, gs_results, path):
+    timestr = time.strftime("%Y-%m-%d-%H%M%S")
+    path = os.path.splitext(path)[0]
+
+    with open(path+"-"+timestr+".csv", 'w') as f:
+        writer = csv.writer(f)
+
+        writer.writerow(keys + ["loss_tr", "loss_vl"])
+
+        for (params, loss_tr, loss_vl) in gs_results:
+            writer.writerow(list(params.values()) + [loss_tr, loss_vl])
+
+
 def grid_parallel(shared_queue, model, train_data, valid_data, direct, training_params, search_param):
     if not direct:
         history = model.training(train_data, valid_data, **training_params)
-        shared_queue.put((search_param, history["loss_tr"], history["loss_vl"]))
+        shared_queue.put((search_param, history["loss_tr"][-1], history["loss_vl"][-1]))
     else:
         loss_tr, loss_vl = model.direct_training(train_data, valid_data, **training_params)
         shared_queue.put((search_param, loss_tr, loss_vl))
@@ -118,7 +133,7 @@ def cross_validation(build_model, dataset: tuple, params:dict, k_folds=4, direct
     return loss_tr_mean, loss_vl_mean
 
 
-def grid_search_cv(build_model, dataset, params:dict, k_folds=4, direct=False):
+def grid_search_cv(build_model, dataset, params:dict, k_folds=4, direct=False, path=None):
     """
     Perform a grid search in which for every n-uple of parameters we use a 4-fold cross validation
     for a better estimate of training and validation error.
@@ -149,13 +164,17 @@ def grid_search_cv(build_model, dataset, params:dict, k_folds=4, direct=False):
     while not shared_queue.empty():
         gs_results.append(shared_queue.get())
 
+    # salvare i risultati della grid search in un file se presente il path
+    if path:
+        save_results_to_file(list(search_params.keys()), gs_results, path)
+
     return_data = {**best_comb(gs_results), **static_params}
 
     return return_data
 
 
 # drop to the build_model the task to assign the params to build the model
-def grid_search(build_model, train_data, valid_data, params:dict, direct=False):
+def grid_search(build_model, train_data, valid_data, params:dict, direct=False, path=None):
     """
     TODO: scrivere documentazione seguendo standard pep8
     Perform a classic grid_search.
@@ -191,6 +210,11 @@ def grid_search(build_model, train_data, valid_data, params:dict, direct=False):
     gs_results = []
     while not shared_queue.empty():
         gs_results.append(shared_queue.get())
+
+    # salvare i risultati della grid search in un file se presente il path
+    if path:
+        save_results_to_file(list(search_params.keys()), gs_results, path)
+
 
     return_data = {**best_comb(gs_results), **static_params}
 
