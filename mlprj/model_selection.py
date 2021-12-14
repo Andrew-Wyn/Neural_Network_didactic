@@ -161,6 +161,11 @@ def cross_validation(build_model, dataset: tuple, params:dict, k_folds=4, direct
     loss_tr_mean /= k_folds
     loss_vl_mean /= k_folds
 
+    #TODO scegliere i file name quando si salva e salvare l'architettura del modello
+    name = "../training_history/prova.json"
+    with open(name, "wb") as f:
+        json.dump({**train_params, "loss_tr": loss_tr_mean, "loss_vl": loss_vl_mean}, f, indent = "\t")
+
     return loss_tr_mean, loss_vl_mean
 
 
