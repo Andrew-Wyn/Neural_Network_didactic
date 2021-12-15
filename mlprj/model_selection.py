@@ -2,6 +2,7 @@ import itertools
 import csv
 import time
 import os
+import sys
 
 from typing import List
 
@@ -146,19 +147,26 @@ def grid_search_cv(build_model, dataset, params:dict, k_folds=4, direct=False, p
     shared_queue = m.Queue()
 
     pool = Pool() # use all available cores, otherwise specify the number you want as an argument
-    for param_combination in itertools.product(*search_params.values()):
-        # create dictionary for params
-        search_param = {}
-        for i, param_key in enumerate(search_params.keys()):
-            search_param[param_key] = param_combination[i]
+    
+    try:
 
-        print("-> ", search_param)
+        for param_combination in itertools.product(*search_params.values()):
+            # create dictionary for params
+            search_param = {}
+            for i, param_key in enumerate(search_params.keys()):
+                search_param[param_key] = param_combination[i]
 
-        # here i have data to pass to the workers
-        pool.apply_async(grid_parallel_cv, (shared_queue, build_model, dataset, k_folds, direct, static_params, search_param))
+            print("-> ", search_param)
+
+            # here i have data to pass to the workers
+            pool.apply_async(grid_parallel_cv, (shared_queue, build_model, dataset, k_folds, direct, static_params, search_param))
         
-    pool.close()
-    pool.join()
+        pool.close()
+        pool.join()
+
+    except KeyboardInterrupt:
+        pool.terminate()
+        sys.exit(1)
 
     gs_results = []
     while not shared_queue.empty():
