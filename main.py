@@ -42,7 +42,16 @@ def build_model(learning_rate, alpha):
 
 if __name__ == '__main__':
 
-    train_x, test_x, train_y, test_y = read_monk(1)
+    train_x, test_x, train_y, test_y = read_monk(2)
+
+    model = build_model_rand(1500)
+
+    model.direct_training((train_x, train_y), validation=(test_x, test_y), lambda_=0, p_d=1, p_dc=0.8, verbose=True)
+
+    print(model_accuracy(model, train_x, train_y))
+    print(model_accuracy(model, test_x, test_y))
+
+    """
 
     monk_1_params = {
         "learning_rate": [0.7, 0.8],
@@ -54,3 +63,4 @@ if __name__ == '__main__':
     monk_1_best_params = grid_search(build_model, (train_x, train_y), (test_x, test_y), monk_1_params, path="monk1.csv")
     monk_1_best_params_other, monk_1_best_params_training = split_train_params(monk_1_best_params)
     print(monk_1_best_params_other, monk_1_best_params_training)
+    """

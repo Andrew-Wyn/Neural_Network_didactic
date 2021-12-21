@@ -92,7 +92,20 @@ class RandomizedNetwork:
 
         return reg_w, reg_b
 
-    def direct_training(self, training, validation=None, lambda_=0, verbose=False):
+    def bias_dropout(self, H, p_d):
+      mask = np.full(H.shape, 1)
+
+      threshold = np.median(H)
+
+      locs = H < threshold
+
+      subs = np.random.binomial(1, 1-p_d, np.sum(locs))
+
+      mask[locs] = subs
+
+      return np.multiply(H, mask)
+
+    def direct_training(self, training, validation=None, lambda_=0, p_d=0, p_dc=0, verbose=False):
       input_tr, target_tr = training
 
       valid_split = False
@@ -100,6 +113,10 @@ class RandomizedNetwork:
       if validation:
         input_vl, target_vl = validation
         valid_split = True
+
+      # Biased DropConnect
+      for layer in self.layers:
+        layer.drop_connect(p_dc)
 
       # transform input data to high dim rand layer
       transformed_train = []
@@ -111,6 +128,10 @@ class RandomizedNetwork:
 
       transformed_train = np.array(transformed_train)
 
+      # Biased Dropout
+      transformed_train = self.bias_dropout(transformed_train, p_d)
+
+      # un-regularized learner
       # output_weights = np.dot(pinv(transformed_train), target_tr)
 
       hidden_layer_dim = self.layers[-1].output_dim
@@ -276,3 +297,22 @@ class RandomizedLayer:
         gradient_b = dE_dNet
 
         return gradient_w, gradient_b
+
+    def drop_connect(self, p_dc):
+      mask_w = np.full(self.weights_matrix.shape, 1)
+      mask_b = np.full(self.bias.shape, 1)
+
+      threshold_w = np.median(self.weights_matrix)
+      threshold_b = np.median(self.bias)
+
+      locs_w = self.weights_matrix < threshold_w
+      locs_b = self.bias < threshold_b
+
+      subs_w = np.random.binomial(1, 1-p_dc, np.sum(locs_w))
+      subs_b = np.random.binomial(1, 1-p_dc, np.sum(locs_b))
+
+      mask_w[locs_w] = subs_w
+      mask_b[locs_b] = subs_b
+
+      self.weights_matrix = np.multiply(self.weights_matrix, mask_w)
+      self.bias = np.multiply(self.bias, mask_b)
