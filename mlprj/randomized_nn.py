@@ -92,10 +92,10 @@ class RandomizedNetwork:
 
         return reg_w, reg_b
 
-    def bias_dropout(self, H, p_d):
+    def bias_dropout(self, H, p_d, quantile=0.5):
       mask = np.full(H.shape, 1)
 
-      threshold = np.median(H)
+      threshold = np.quantile(H, quantile)
 
       locs = H < threshold
 
@@ -298,12 +298,12 @@ class RandomizedLayer:
 
         return gradient_w, gradient_b
 
-    def drop_connect(self, p_dc):
+    def drop_connect(self, p_dc, quantile=0.5):
       mask_w = np.full(self.weights_matrix.shape, 1)
       mask_b = np.full(self.bias.shape, 1)
 
-      threshold_w = np.median(self.weights_matrix)
-      threshold_b = np.median(self.bias)
+      threshold_w = np.quantile(self.weights_matrix, quantile)
+      threshold_b = np.quantile(self.bias, quantile)
 
       locs_w = self.weights_matrix < threshold_w
       locs_b = self.bias < threshold_b
