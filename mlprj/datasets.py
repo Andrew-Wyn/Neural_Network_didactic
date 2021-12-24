@@ -12,36 +12,59 @@ def get_preprocess_monk(stream):
     ds.set_index('Identifier', inplace=True)
 
     ds = ds.sample(frac=1)
-    labels = ds.pop('a0')
+    target = ds.pop('a0')
 
     ds = OneHotEncoder().fit_transform(ds).toarray().astype(np.float32)
     
-    labels = labels.to_numpy()[:, np.newaxis]
+    target = target.to_numpy()[:, np.newaxis]
 
-    return ds, labels
+    return ds, target
+
+
+def get_preprocess_cup(stream):
+    col_names = ['Id', 'a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7', 'a8', 'a9', 'a10', 't1', 't2']
+    ds = pd.read_csv(stream, sep=',', names=col_names)
+    ds.set_index('Id', inplace=True)
+
+    ds = ds.sample(frac=1)
+    target = ds[['t1', 't2']].copy().to_numpy()
+
+    ds.drop(['t1', 't2'], axis=1, inplace=True)
+
+    ds = StandardScaler().fit_transform(ds)
+    
+    return ds, target
 
 
 def read_monk(dataset_id):
     stream_train = pkg_resources.resource_stream(__name__, f"data/Monks/monks-{dataset_id}.train")
     stream_test = pkg_resources.resource_stream(__name__, f"data/Monks/monks-{dataset_id}.test")
     
-    train_ds, train_labels = get_preprocess_monk(stream_train)
-    test_ds, test_labels = get_preprocess_monk(stream_test)
+    train_ds, train_target = get_preprocess_monk(stream_train)
+    test_ds, test_target = get_preprocess_monk(stream_test)
 
-    return train_ds, test_ds, train_labels, test_labels
+    return train_ds, test_ds, train_target, test_target
     
 
 def read_cup():
-    stream = pkg_resources.resource_stream(__name__, f"data/Cup/ML-CUP21-TR.csv")
+    stream_train = pkg_resources.resource_stream(__name__, f"data/Cup/cup_train.csv")
+    stream_test = pkg_resources.resource_stream(__name__, f"data/Cup/cup_test.csv")
 
-    col_names = ['Id', 'a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7', 'a8', 'a9', 'a10', 't1', 't2']
-    train_ds = pd.read_csv(stream, sep=',', names=col_names)
-    train_ds.set_index('Id', inplace=True)
+    train_ds, train_target = get_preprocess_cup(stream_train)
+    test_ds, test_target = get_preprocess_cup(stream_test)
 
-    train_ds = train_ds.sample(frac=1)
-    train = train_ds[['a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7', 'a8', 'a9', 'a10']].to_numpy()
-    labels = train_ds[['t1', 't2']].to_numpy()
+    return train_ds, test_ds, train_target, test_target
 
-    train = StandardScaler().fit_transform(train)
+
+def read_cup_blind_test():
+    stream = pkg_resources.resource_stream(__name__, f"data/Cup/cup_blind_test.csv")
+
+    col_names = ['Id', 'a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7', 'a8', 'a9', 'a10']
+    ds = pd.read_csv(stream, sep=',', names=col_names)
+    ds.set_index('Id', inplace=True)
+
+    ds = ds.sample(frac=1)
+
+    ds = StandardScaler().fit_transform(ds)
     
-    return train, labels
+    return ds
