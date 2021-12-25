@@ -36,8 +36,8 @@ def grid_parallel(shared_queue, model, train_data, valid_data, direct, training_
         history = model.training(train_data, valid_data, **training_params)
         shared_queue.put((search_param, history["loss_tr"][-1], history["loss_vl"][-1]))
     else:
-        loss_tr, loss_vl = model.direct_training(train_data, valid_data, **training_params)
-        shared_queue.put((search_param, loss_tr, loss_vl))
+        history = model.direct_training(train_data, valid_data, **training_params)
+        shared_queue.put((search_param, history["loss_tr"], history["loss_vl"]))
     print(search_param, "  : done!!")
 
 
@@ -124,9 +124,9 @@ def cross_validation(build_model, dataset: tuple, params:dict, k_folds=4, direct
             loss_tr_mean += history["loss_tr"][-1]
             loss_vl_mean += history["loss_vl"][-1]
         else:
-            loss_tr, loss_vl = model.direct_training((train_x, train_y), (valid_x, valid_y), **train_params)
-            loss_tr_mean += loss_tr
-            loss_vl_mean += loss_vl
+            history = model.direct_training((train_x, train_y), (valid_x, valid_y), **train_params)
+            loss_tr_mean += history["loss_tr"]
+            loss_vl_mean += history["loss_vl"]
 
     loss_tr_mean /= k_folds
     loss_vl_mean /= k_folds
