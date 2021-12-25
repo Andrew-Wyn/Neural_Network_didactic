@@ -37,3 +37,15 @@ class MEE(Loss):
     def derivate(self, target, output):
         diff = target - output
         return -(diff)/(np.sqrt((diff)**2))
+
+
+class BinaryCrossEntropy(Loss):
+
+    def __init__(self):
+        pass
+
+    def compute(self, target, output):
+        return -(target*np.log(output) + (1-target)*np.log(1-output))
+
+    def derivative(self, target, output):
+        return -((target-output)/(output*(1-output)))
