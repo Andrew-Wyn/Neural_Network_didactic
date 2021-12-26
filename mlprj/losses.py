@@ -57,7 +57,7 @@ class BinaryCrossEntropy(Loss):
 
 
 loss_functions = {
-    'MSE': MSE(),
-    'MEE': MEE(),
-    'BinaryCrossEntropy' : BinaryCrossEntropy(),
+    'mse': MSE(),
+    'mee': MEE(),
+    'bce' : BinaryCrossEntropy(),
 }

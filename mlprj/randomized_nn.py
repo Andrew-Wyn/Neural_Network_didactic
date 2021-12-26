@@ -1,6 +1,6 @@
 import numpy as np
 
-from mlprj.utility import model_loss
+from mlprj.utility import compiled_check, model_loss
 
 from .activations import *
 from .initializers import *
@@ -24,6 +24,7 @@ class RandomizedNetwork:
       self.beta = None
 
       # handled by compile
+      self.compiled = False
       self.loss = None
     
     def compile(self, loss):
@@ -40,6 +41,9 @@ class RandomizedNetwork:
         prev_dim = self.input_dim 
         self.hidden_layer.initialize_weights(prev_dim)
 
+        self.compiled = True
+
+    @compiled_check
     def forward_step(self, net_input: np.ndarray):
         """
         A forward step of the network
@@ -53,6 +57,7 @@ class RandomizedNetwork:
 
         return np.matmul(self.beta, value)
 
+    @compiled_check
     def predict(self, inputs):
       preds = []
 
@@ -61,7 +66,7 @@ class RandomizedNetwork:
 
       return np.array(preds)
 
-    def bias_dropout(self, H, p_d, quantile=0.5):
+    def _bias_dropout(self, H, p_d, quantile=0.5):
       mask = np.full(H.shape, 1)
 
       threshold = np.quantile(H, quantile)
@@ -74,6 +79,7 @@ class RandomizedNetwork:
 
       return np.multiply(H, mask)
 
+    @compiled_check
     def direct_training(self, training, validation=None, lambda_=0, p_d=0, p_dc=0, verbose=False):
       input_tr, target_tr = training
 
@@ -97,7 +103,7 @@ class RandomizedNetwork:
       transformed_train = np.array(transformed_train)
 
       # Biased Dropout
-      transformed_train = self.bias_dropout(transformed_train, p_d)
+      transformed_train = self._bias_dropout(transformed_train, p_d)
 
       # un-regularized learner
       # output_weights = np.dot(pinv(transformed_train), target_tr)

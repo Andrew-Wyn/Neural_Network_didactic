@@ -25,27 +25,15 @@ def build_model_rand(hidden_neurons):
 
 if __name__ == '__main__':
 
-    train_x, test_x, train_y, test_y, preprocesser = read_cup()
+    X, test_x, y, test_y, preprocesser = read_cup()
 
-    print(cross_validation(build_model_rand, (train_x, train_y), {"hidden_neurons": 700, "lambda_": 0.5, "p_d":0.1, "p_dc":0.1}, k_folds=5, direct=True))
+    train_x, valid_x, train_y, valid_y = train_test_split(X, y, test_size=0.1, random_state=42)
 
-    model = build_model_rand(700)
+    model = Network(10, [Layer(20, "relu", "gaussian"), Layer(10, "sigmoid", "gaussian"), Layer(2, "linear", "gaussian")])
 
-    model.direct_training((train_x, train_y), validation=(test_x, test_y), lambda_=0.5, p_d=0.1, p_dc=0.1, verbose=True)
+    model.compile(loss=MSE(), regularizer=L2Regularizer(0.000025), optimizer=StochasticGradientDescent(0.2, 0.175))
 
-    print(model_accuracy(model, train_x, train_y))
-    print(model_accuracy(model, test_x, test_y))
+    model.training((train_x, train_y), (valid_x, valid_y), batch_size=32, early_stopping=20, verbose=True)
 
-    """
-
-    monk_1_params = {
-        "learning_rate": [0.7, 0.8],
-        "alpha": [0.4, 0.4],
-        "epochs": 10,
-        "batch_size": "full"
-    }
-
-    monk_1_best_params = grid_search(build_model, (train_x, train_y), (test_x, test_y), monk_1_params, path="monk1.csv")
-    monk_1_best_params_other, monk_1_best_params_training = split_train_params(monk_1_best_params)
-    print(monk_1_best_params_other, monk_1_best_params_training)
-    """
+    print(model_loss(model, MSE(), test_x, test_y))
+    print(model_loss(model, MEE(), test_x, test_y))

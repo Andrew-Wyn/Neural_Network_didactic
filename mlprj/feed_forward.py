@@ -3,7 +3,7 @@ import math
 import pickle
 import copy
 
-from mlprj.utility import model_loss
+from mlprj.utility import model_loss, compiled_check
 
 from .activations import *
 from .initializers import *
@@ -27,6 +27,7 @@ class Network:
       self.layers = layers
 
       # handled by compile
+      self.compiled = False
       self.loss = None
       self.regularizer = None
 
@@ -49,7 +50,10 @@ class Network:
       for layer in self.layers:
         layer.initialize_weights(prev_dim)
         prev_dim = layer.output_dim
-    
+
+      self.compiled = True
+
+    @compiled_check
     def forward_step(self, net_input: np.ndarray):
       """
         A forward step of the network
@@ -63,6 +67,7 @@ class Network:
         value = layer.forward_step(value)
       return value
 
+    @compiled_check
     def predict(self, inputs):
       if len(np.array(inputs).shape) == 1:
         inputs = np.expand_dims(inputs, axis=0)
@@ -120,6 +125,7 @@ class Network:
 
       return regs
 
+    @compiled_check
     def save_model(self, path=None):
       saved_model = {}
  
@@ -148,6 +154,7 @@ class Network:
 
       self.load_model_from_dict(saved_model)
 
+    @compiled_check
     def training(self, training, validation=None, epochs=500, batch_size=64, early_stopping = None, verbose=False):
       """
         Function that performs neural network training phase, choosing the minibatch size if needed

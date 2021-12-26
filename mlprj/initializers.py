@@ -42,5 +42,5 @@ class ConstantInitializer(Initializer):
 initializer_functions = {
     'gaussian': GaussianInitializer(),
     'uniform': UniformInitializer(),
-    'constant_initialization' : ConstantInitializer(),
+    'constant' : ConstantInitializer(),
 }

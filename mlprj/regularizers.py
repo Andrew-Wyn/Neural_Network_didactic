@@ -15,7 +15,7 @@ class Regularizer(ABC):
 
 class L2Regularizer(Regularizer):
 
-    def __init__(self, lambda_):
+    def __init__(self, lambda_=0.1):
         self.lambda_ = lambda_
 
     def regularize(self, weights):
@@ -24,7 +24,7 @@ class L2Regularizer(Regularizer):
 
 class L1Regularizer(Regularizer):
 
-    def __init__(self, lambda_):
+    def __init__(self, lambda_=0.1):
         self.lambda_ = lambda_
 
     def regularize(self, weights):
@@ -32,6 +32,6 @@ class L1Regularizer(Regularizer):
 
 
 regularizer_functions = {
-    "l1" : L1Regularizer(0.1),
-    "l2" : L2Regularizer(0.1)
+    "l1" : L1Regularizer(),
+    "l2" : L2Regularizer()
 }
