@@ -1,56 +1,64 @@
 import numpy as np
 
+from abc import ABC, abstractmethod
 
-def linear(x: np.ndarray):
+
+class ActivationFunction(ABC):
+    def __init__(self):
+        pass
+
+    @abstractmethod
+    def compute(self, x:np.ndarray):
+        pass
+
+    @abstractmethod
+    def derivative(self, x:np.ndarray):
+        pass
+
+
+class Linear(ActivationFunction):
     """ linear activation function """
-    return x
+    def compute(self, x: np.ndarray):
+        return x
+
+    def derivative(self, _: np.ndarray):
+        return 1
 
 
-def relu(x: np.ndarray):
+class ReLU(ActivationFunction):
     """ ReLU activation function """
-    return np.maximum(x, 0)
+    def compute(self, x: np.ndarray):
+        return np.maximum(x, 0)
+
+    def derivative(self, x: np.ndarray):
+        mf = lambda y: 1 if y > 0 else 0
+        mf_v = np.vectorize(mf)
+
+        return mf_v(x)
 
 
-def sigmoid(x: np.ndarray):
+class Sigmoid(ActivationFunction):
     """ Sigmoid activation function """
-    ones = np.ones(x.shape)
-    return np.divide(ones, np.add(ones, np.exp(-x)))
+    def compute(self, x: np.ndarray):
+        ones = np.ones(x.shape)
+        return np.divide(ones, np.add(ones, np.exp(-x)))
+    
+    def derivative(self, x: np.ndarray):
+        return np.multiply(self.compute(x), np.subtract(np.ones(x.shape), self.compute(x)))
 
 
-def derivate_sigmoid(x: np.ndarray):
-    """ Derivative of sigmoid activation function """
-    return np.multiply(sigmoid(x), np.subtract(np.ones(x.shape), sigmoid(x)))
-
-
-def tanh(x: np.ndarray):
+class Tanh(ActivationFunction):
     """ Hyperbolic tangent function (TanH) """
-    return np.tanh(x)
+    def compute(self, x: np.ndarray):
+        return np.tanh(x)
 
-
-def derivative_tanh(x: np.ndarray):
-  """ Derivative of hyperbolic tangent function (TanH) """
-  return 1 - np.tanh(x)**2
-
-
-def derivative_relu(x: np.ndarray):
-    """ Derivative of ReLU activation function """
-    mf = lambda y: 1 if y > 0 else 0
-    mf_v = np.vectorize(mf)
-
-    return mf_v(x)
+    def derivative(self, x: np.ndarray):
+        return 1 - np.tanh(x)**2
 
 
 activation_functions = {
-    'linear': linear,
-    'relu': relu,
-    'sigmoid': sigmoid,
-    'tanh': tanh
-}
-
-
-derivate_activation_functions = {
-    'linear': lambda _: 1,
-    'relu': derivative_relu,
-    'sigmoid': derivate_sigmoid,
-    'tanh': derivative_tanh
+    'linear': Linear(),
+    'relu': ReLU(),
+    'sigmoid': Sigmoid(),
+    'tanh': Tanh()
 }

@@ -4,6 +4,7 @@ from mlprj.utility import model_loss
 
 from .activations import *
 from .initializers import *
+from .losses import *
 
 class RandomizedNetwork:
     """
@@ -25,7 +26,7 @@ class RandomizedNetwork:
       # handled by compile
       self.loss = None
     
-    def compile(self, loss=None):
+    def compile(self, loss):
         """
         Function that inizializes the neural network
         Args:
@@ -33,11 +34,12 @@ class RandomizedNetwork:
             regularizer: selected regularization method
             optimizer: optimization procedure
         """
-        self.loss = loss
+
+        self.loss = loss if isinstance(loss, Loss) else loss_functions[loss]
 
         prev_dim = self.input_dim 
         self.hidden_layer.initialize_weights(prev_dim)
-    
+
     def forward_step(self, net_input: np.ndarray):
         """
         A forward step of the network
@@ -136,8 +138,9 @@ class RandomizedLayer:
         self.output_dim = output_dim
         self.weights_matrix = None
         self.bias = None
-        self.activation = activation_functions[activation]
-        self.initializer = initializer
+        
+        self.activation = activation if isinstance(activation, ActivationFunction) else activation_functions[activation]
+        self.initializer = initializer if isinstance(initializer, Initializer) else initializer_functions[initializer]
 
     def initialize_weights(self, input_dim):
         """
@@ -158,7 +161,7 @@ class RandomizedLayer:
         """
         net = np.matmul(self.weights_matrix, net_input)
         net = np.add(net, self.bias)
-        return self.activation(net)
+        return self.activation.compute(net)
 
     def drop_connect(self, p_dc, quantile=0.5):
       mask_w = np.full(self.weights_matrix.shape, 1)

@@ -1,10 +1,16 @@
-class Optimizer:
+from abc import ABC
+
+from abc import ABC, abstractmethod
+
+class Optimizer(ABC):
     def __init__(self):
         pass
-
+    
+    @abstractmethod
     def clear(self):
         raise NotImplementedError()
 
+    @abstractmethod
     def optimize(self):
         raise NotImplementedError()
 
@@ -46,3 +52,8 @@ class StochasticGradientDescent(Optimizer):
         self.memory = deltas
 
         return deltas
+
+
+optimizer_functions = {
+    "sgd" : StochasticGradientDescent(0.1, 0.3, None)
+}

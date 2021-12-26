@@ -3,64 +3,13 @@ import math
 import pickle
 import copy
 
+from mlprj.utility import model_loss
 
-def linear(x: np.ndarray):
-    """ linear activation function """
-    return x
-
-
-def relu(x: np.ndarray):
-    """ ReLU activation function """
-    return np.maximum(x, 0)
-
-
-def sigmoid(x: np.ndarray):
-    """ Sigmoid activation function """
-    ones = np.ones(x.shape)
-    return np.divide(ones, np.add(ones, np.exp(-x)))
-
-
-def derivate_sigmoid(x: np.ndarray):
-    """ Derivative of sigmoid activation function """
-    return np.multiply(sigmoid(x), np.subtract(np.ones(x.shape), sigmoid(x)))
-
-
-def tanh(x: np.ndarray):
-    """ Hyperbolic tangent function (TanH) """
-    return np.tanh(x)
-
-
-def derivative_tanh(x: np.ndarray):
-  """ Derivative of hyperbolic tangent function (TanH) """
-  return 1 - np.tanh(x)**2
-
-
-def derivative_relu(x: np.ndarray):
-    """ Derivative of ReLU activation function """
-    mf = lambda y: 1 if y > 0 else 0
-    mf_v = np.vectorize(mf)
-
-    return mf_v(x)
-
-
-def derivative_linear(_: np.ndarray):
-  return 1
-
-
-activation_functions = {
-    'linear': linear,
-    'relu': relu,
-    'sigmoid': sigmoid,
-    'tanh': tanh
-}
-
-derivate_activation_functions = {
-    'linear': derivative_linear,
-    'relu': derivative_relu,
-    'sigmoid': derivate_sigmoid,
-    'tanh': derivative_tanh
-}
-
+from .activations import *
+from .initializers import *
+from .losses import *
+from .regularizers import *
+from .optimizers import *
 
 class Network:
     """
@@ -91,9 +40,10 @@ class Network:
             regularizer: selected regularization method
             optimizer: optimization procedure
       """
-      self.loss = loss
-      self.regularizer = regularizer
-      self.optimizer = optimizer
+
+      self.loss = loss if isinstance(loss, Loss) else loss_functions[loss]
+      self.regularizer = regularizer if isinstance(regularizer, Regularizer) else regularizer_functions[regularizer]    
+      self.optimizer = optimizer if isinstance(optimizer, Optimizer) else optimizer_functions[optimizer]
 
       prev_dim = self.input_dim 
       for layer in self.layers:
@@ -137,7 +87,7 @@ class Network:
       # forward phase, calcolare gli output a tutti i livelli partendo dall'input (net, out)
       fw_out = self.forward_step(net_input)
       
-      dE_dO = self.loss.derivate(target, fw_out)
+      dE_dO = self.loss.derivative(target, fw_out)
       # backward phase, calcolare i delta partendo dal livello di output
       for layer in reversed(self.layers):
         dE_dO, gradient_w, gradient_b = layer.backpropagate_delta(dE_dO)
@@ -272,11 +222,11 @@ class Network:
 
           self._apply_deltas(optimized_deltas)
 
-        epoch_error_tr = self.compute_total_error(input_tr, target_tr)
+        epoch_error_tr = model_loss(self, self.loss, input_tr, target_tr)
         history["loss_tr"].append(epoch_error_tr)
 
         if valid_split:
-          epoch_error_vl = self.compute_total_error(input_vl, target_vl)
+          epoch_error_vl = model_loss(self, self.loss, input_vl, target_vl)
           
           if early_stopping and epoch_error_vl < best_validation and np.abs(epoch_error_vl - best_validation) > self._tollerance:
             best_validation = epoch_error_vl
@@ -302,20 +252,6 @@ class Network:
 
       return history
 
-    def compute_total_error(self, net_input, target):
-      """
-        The computation of the total error
-        Args:
-            net_input: (np.array) initial net values
-            target: the target value
-        Returns:
-            output: total error
-      """
-      total_error = 0
-      for i in range(len(net_input)):
-        total_error += self.loss.compute(target[i], self.forward_step(net_input[i]))
-      return total_error/len(net_input)
-
 
 class Layer:
     """
@@ -327,14 +263,13 @@ class Layer:
             initialization_parameters: (dict) hyperparameters
     """
     def __init__(self, output_dim, activation, initializer):
-        self.input_dim = None # if it's not setted, not "compiled" the nn
-        self.output_dim = output_dim 
+        self.input_dim = None
+        self.output_dim = output_dim
         self.weights_matrix = None
         self.bias = None
-        self.activation = activation_functions[activation]
-        self.activation_derivate = derivate_activation_functions[activation]
 
-        self.initializer = initializer
+        self.activation = activation if isinstance(activation, ActivationFunction) else activation_functions[activation]
+        self.initializer = initializer if isinstance(initializer, Initializer) else initializer_functions[initializer]
 
         self._input = None
         self._net = None
@@ -360,7 +295,7 @@ class Layer:
       self._input = net_input
       self._net = np.matmul(self.weights_matrix, self._input)
       self._net = np.add(self._net, self.bias)
-      self._output = self.activation(self._net)
+      self._output = self.activation.compute(self._net)
       return self._output
 
     def backpropagate_delta(self, upper_dE_dO): # return current layer
@@ -374,7 +309,7 @@ class Layer:
             gradient_w: the gradient with respect to W
             gradient_b: the gradient with respect to the bias
       """
-      dE_dNet = upper_dE_dO * self.activation_derivate(self._net)
+      dE_dNet = upper_dE_dO * self.activation.derivative(self._net)
       gradient_w = np.transpose(dE_dNet[np.newaxis, :]) @ self._input[np.newaxis, :] 
       gradient_b = dE_dNet
       # calculate the dE_dO to pass to the previous layer

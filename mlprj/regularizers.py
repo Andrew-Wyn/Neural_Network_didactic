@@ -1,10 +1,14 @@
+from abc import ABC
 import numpy as np
 
-class Regularizer():
+from abc import ABC, abstractmethod
+
+class Regularizer(ABC):
 
     def __init__(self):
         pass
 
+    @abstractmethod
     def regularize(self, weights):
         raise NotImplementedError()
 
@@ -25,3 +29,9 @@ class L1Regularizer(Regularizer):
 
     def regularize(self, weights):
         return -self.lambda_*np.sign(weights)
+
+
+regularizer_functions = {
+    "l1" : L1Regularizer(0.1),
+    "l2" : L2Regularizer(0.1)
+}

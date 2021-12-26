@@ -17,7 +17,7 @@ from sklearn.model_selection import train_test_split
 
 def build_model_rand(hidden_neurons):
 
-    nn = RandomizedNetwork(17, RandomizedLayer(hidden_neurons, "sigmoid"), 1)
+    nn = RandomizedNetwork(10, RandomizedLayer(hidden_neurons, "sigmoid"), 2)
     nn.compile(loss=MSE())
 
     return nn
@@ -25,13 +25,13 @@ def build_model_rand(hidden_neurons):
 
 if __name__ == '__main__':
 
-    train_x, test_x, train_y, test_y = read_monk(3)
+    train_x, test_x, train_y, test_y, preprocesser = read_cup()
 
-    print(cross_validation(build_model_rand, (train_x, train_y), {"hidden_neurons": 700, "lambda_": 0.5, "p_d":1, "p_dc":1}, k_folds=5, direct=True))
+    print(cross_validation(build_model_rand, (train_x, train_y), {"hidden_neurons": 700, "lambda_": 0.5, "p_d":0.1, "p_dc":0.1}, k_folds=5, direct=True))
 
     model = build_model_rand(700)
 
-    model.direct_training((train_x, train_y), validation=(test_x, test_y), lambda_=0.5, p_d=1, p_dc=1, verbose=True)
+    model.direct_training((train_x, train_y), validation=(test_x, test_y), lambda_=0.5, p_d=0.1, p_dc=0.1, verbose=True)
 
     print(model_accuracy(model, train_x, train_y))
     print(model_accuracy(model, test_x, test_y))

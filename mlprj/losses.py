@@ -1,14 +1,19 @@
+from abc import ABC
 import numpy as np
 
-class Loss:
+from abc import ABC, abstractmethod
+
+class Loss(ABC):
 
     def __init__(self):
         pass
-
+    
+    @abstractmethod
     def compute(self, target, output):
         raise NotImplementedError()
 
-    def derivate(self, target, output):
+    @abstractmethod
+    def derivative(self, target, output):
         raise NotImplementedError()
 
 
@@ -21,7 +26,7 @@ class MSE(Loss):
         diff = target - output
         return np.linalg.norm(diff)**2
 
-    def derivate(self, target, output):
+    def derivative(self, target, output):
         return -2*(target - output)
 
 
@@ -34,7 +39,7 @@ class MEE(Loss):
         diff = target - output
         return np.linalg.norm(diff)
 
-    def derivate(self, target, output):
+    def derivative(self, target, output):
         diff = target - output
         return -(diff)/(np.sqrt((diff)**2))
 
@@ -49,3 +54,10 @@ class BinaryCrossEntropy(Loss):
 
     def derivative(self, target, output):
         return -((target-output)/(output*(1-output)))
+
+
+loss_functions = {
+    'MSE': MSE(),
+    'MEE': MEE(),
+    'BinaryCrossEntropy' : BinaryCrossEntropy(),
+}
