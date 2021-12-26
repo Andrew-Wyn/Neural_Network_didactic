@@ -17,25 +17,8 @@ from sklearn.model_selection import train_test_split
 
 def build_model_rand(hidden_neurons):
 
-    nn = RandomizedNetwork(17,
-    [
-    RandomizedLayer(hidden_neurons, "relu"),
-    RandomizedLayer(1, "linear")])
-
+    nn = RandomizedNetwork(17, RandomizedLayer(hidden_neurons, "sigmoid"), 1)
     nn.compile(loss=MSE())
-
-    return nn
-
-
-def build_model(learning_rate, alpha):
-
-    nn = Network(17,
-    [
-    Layer(5, "relu", GaussianInitializer()),
-    Layer(1, "sigmoid", GaussianInitializer())]
-    )
-
-    nn.compile(loss=MSE(), regularizer=L2Regularizer(0), optimizer=StochasticGradientDescent(learning_rate, alpha))
 
     return nn
 
@@ -44,11 +27,11 @@ if __name__ == '__main__':
 
     train_x, test_x, train_y, test_y = read_monk(3)
 
-    print(cross_validation(build_model_rand, (train_x, train_y), {"hidden_neurons": 700, "lambda_": 0.5, "p_d":0.1, "p_dc":0.1}, k_folds=5, direct=True))
+    print(cross_validation(build_model_rand, (train_x, train_y), {"hidden_neurons": 700, "lambda_": 0.5, "p_d":1, "p_dc":1}, k_folds=5, direct=True))
 
     model = build_model_rand(700)
 
-    model.direct_training((train_x, train_y), validation=(test_x, test_y), lambda_=0.5, p_d=0.1, p_dc=0.1, verbose=True)
+    model.direct_training((train_x, train_y), validation=(test_x, test_y), lambda_=0.5, p_d=1, p_dc=1, verbose=True)
 
     print(model_accuracy(model, train_x, train_y))
     print(model_accuracy(model, test_x, test_y))

@@ -1,7 +1,6 @@
 import numpy as np
-import math
 
-from scipy.linalg import pinv
+from mlprj.utility import model_loss
 
 from .activations import *
 from .initializers import *
@@ -19,8 +18,9 @@ class RandomizedNetwork:
     """
     def __init__(self, input_dim: int, hidden_layer, output_dim):
       self.input_dim = input_dim
-      self.last_layer = last_layer
+      self.output_dim = output_dim
       self.hidden_layer = hidden_layer
+      self.beta = None
 
       # handled by compile
       self.loss = None
@@ -37,8 +37,6 @@ class RandomizedNetwork:
 
         prev_dim = self.input_dim 
         self.hidden_layer.initialize_weights(prev_dim)
-        prev_dim = self.hidden_layer.output_dim
-        self.last_layer.initialize_weights(prev_dim)
     
     def forward_step(self, net_input: np.ndarray):
         """
@@ -50,7 +48,8 @@ class RandomizedNetwork:
         """
         value = net_input
         value = self.hidden_layer.forward_step(value)
-        return self.last_layer.forward_step(value)
+
+        return np.matmul(self.beta, value)
 
     def predict(self, inputs):
       preds = []
@@ -90,9 +89,7 @@ class RandomizedNetwork:
       # transform input data to high dim rand layer
       transformed_train = []
       for sample in input_tr:
-        transformed_sample = sample
-        for layer in self.layers:
-            transformed_sample = layer.forward_step(transformed_sample)
+        transformed_sample = self.hidden_layer.forward_step(sample)
         transformed_train.append(transformed_sample)
 
       transformed_train = np.array(transformed_train)
@@ -107,15 +104,14 @@ class RandomizedNetwork:
       hidden_layer_dim = self.hidden_layer.output_dim
       output_weights = np.linalg.lstsq(transformed_train.T.dot(transformed_train) + lambda_ * np.identity(hidden_layer_dim), transformed_train.T.dot(target_tr), rcond=None)[0]
 
-      self.last_layer.weights_matrix = output_weights.T
-      self.last_layer.bias = np.zeros(self.last_layer.bias.shape)
+      self.beta = output_weights.T
 
-      error_tr = self.compute_total_error(input_tr, target_tr)
+      error_tr = model_loss(self, self.loss, input_tr, target_tr)
 
       history["loss_tr"] = error_tr
 
       if valid_split:
-        error_vl = self.compute_total_error(input_vl, target_vl)
+        error_vl = model_loss(self, self.loss, input_vl, target_vl)
         if verbose:
           print(f"error_tr = {error_tr} | error_vl = {error_vl}")
         history["loss_vl"] = error_vl
@@ -124,20 +120,6 @@ class RandomizedNetwork:
           print(f"error_tr = {error_tr}")
 
       return history
-
-    def compute_total_error(self, net_input, target):
-      """
-        The computation of the total error
-        Args:
-            input: (np.array) initial net values
-            target: the target value
-        Returns:
-            output: total error
-      """
-      total_error = 0
-      for i in range(len(net_input)):
-        total_error += self.loss.compute(target[i], self.forward_step(net_input[i]))
-      return total_error/len(net_input)
 
 
 class RandomizedLayer:
@@ -155,13 +137,7 @@ class RandomizedLayer:
         self.weights_matrix = None
         self.bias = None
         self.activation = activation_functions[activation]
-        self.activation_derivate = derivate_activation_functions[activation]
-
         self.initializer = initializer
-
-        self._input = None
-        self._net = None
-        self._output = None
 
     def initialize_weights(self, input_dim):
         """
@@ -180,11 +156,9 @@ class RandomizedLayer:
         Returns:
             output: layer's output
         """
-        self._input = net_input
-        self._net = np.matmul(self.weights_matrix, self._input)
-        self._net = np.add(self._net, self.bias)
-        self._output = self.activation(self._net)
-        return self._output
+        net = np.matmul(self.weights_matrix, net_input)
+        net = np.add(net, self.bias)
+        return self.activation(net)
 
     def drop_connect(self, p_dc, quantile=0.5):
       mask_w = np.full(self.weights_matrix.shape, 1)
