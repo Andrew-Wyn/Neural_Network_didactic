@@ -12,7 +12,7 @@ def compiled_check(method):
 
 def model_accuracy(model, X, y, threshold=0.5):
     preds = model.predict(X) >= threshold
-    return 1 - np.mean(np.abs(preds - y), axis=0)
+    return np.mean(1 - np.mean(np.abs(preds - y), axis=0))
 
 
 def model_loss(model, loss, X, y):

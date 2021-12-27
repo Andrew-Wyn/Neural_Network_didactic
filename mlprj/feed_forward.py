@@ -3,7 +3,7 @@ import math
 import pickle
 import copy
 
-from mlprj.utility import model_loss, compiled_check
+from mlprj.utility import model_accuracy, model_loss, compiled_check
 
 from .activations import *
 from .initializers import *
@@ -155,7 +155,7 @@ class Network:
       self.load_model_from_dict(saved_model)
 
     @compiled_check
-    def training(self, training, validation=None, epochs=500, batch_size=64, early_stopping = None, verbose=False):
+    def training(self, training, validation=None, epochs=500, batch_size=64, early_stopping = None, verbose=False, accuracy_curve=False):
       """
         Function that performs neural network training phase, choosing the minibatch size if needed
         Args:
@@ -180,7 +180,10 @@ class Network:
       else:
         valid_split = False
       
-      history = {"loss_tr": [], "loss_vl": []}
+      if accuracy_curve:
+        history = {"loss_tr" : [], "loss_vl" : [], "accuracy_tr" : [], "accuracy_vl" : []}
+      else:
+        history = {"loss_tr" : [], "loss_vl" : []}
 
       l = len(input_tr)
 
@@ -232,18 +235,26 @@ class Network:
         epoch_error_tr = model_loss(self, self.loss, input_tr, target_tr)
         history["loss_tr"].append(epoch_error_tr)
 
+        if accuracy_curve:
+          epoch_accuracy_tr = model_accuracy(self, input_tr, target_tr)
+          history["accuracy_tr"].append(epoch_accuracy_tr)
+
         if valid_split:
           epoch_error_vl = model_loss(self, self.loss, input_vl, target_vl)
+          history["loss_vl"].append(epoch_error_vl)
           
+          if accuracy_curve:
+            epoch_accuracy_tr = model_accuracy(self, input_vl, target_vl)
+            history["accuracy_vl"].append(epoch_accuracy_tr)
+
           if early_stopping and epoch_error_vl < best_validation and np.abs(epoch_error_vl - best_validation) > self._tollerance:
             best_validation = epoch_error_vl
             not_improving_epochs = 0
             saved_model = self.save_model()
             best_epoch = i
           else:
-            not_improving_epochs += 1
+            not_improving_epochs += 1            
 
-          history["loss_vl"].append(epoch_error_vl)
           if verbose:
             print(f"epoch {i}: error_tr = {epoch_error_tr} | error_vl = {epoch_error_vl}")
         else:
@@ -255,6 +266,9 @@ class Network:
           self.load_model_from_dict(saved_model)
           history["loss_tr"] = history["loss_tr"][:best_epoch+1]
           history["loss_vl"] = history["loss_vl"][:best_epoch+1]
+          if accuracy_curve:
+            history["accuracy_tr"] = history["accuracy_tr"][:best_epoch+1]
+            history["accuracy_vl"] = history["accuracy_vl"][:best_epoch+1]
           return history
 
       return history

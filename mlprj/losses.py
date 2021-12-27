@@ -50,7 +50,7 @@ class BinaryCrossEntropy(Loss):
         pass
 
     def compute(self, target, output):
-        return -(target*np.log(output) + (1-target)*np.log(1-output))
+        return -np.sum((target*np.log(output) + (1-target)*np.log(1-output)))
 
     def derivative(self, target, output):
         return -((target-output)/(output*(1-output)))
