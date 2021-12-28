@@ -146,6 +146,8 @@ class Network:
       self.regularizer = saved_model["regularizer"]
       self.optimizer = saved_model["optimizer"]
 
+      self.compiled = True
+
     def load_model_from_file(self, path):
       saved_model = {}
 
