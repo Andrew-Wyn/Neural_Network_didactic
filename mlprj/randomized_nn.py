@@ -1,4 +1,5 @@
 import numpy as np
+from numpy.linalg import pinv
 
 from mlprj.utility import compiled_check, model_loss
 
@@ -22,6 +23,7 @@ class RandomizedNetwork:
       self.output_dim = output_dim
       self.hidden_layer = hidden_layer
       self.beta = None
+      self.beta_b = None
 
       # handled by compile
       self.compiled = False
@@ -55,7 +57,7 @@ class RandomizedNetwork:
         value = net_input
         value = self.hidden_layer.forward_step(value)
 
-        return np.matmul(self.beta, value)
+        return np.matmul(self.beta, value) + self.beta_b
 
     @compiled_check
     def predict(self, inputs):
@@ -105,14 +107,18 @@ class RandomizedNetwork:
       # Biased Dropout
       transformed_train = self._bias_dropout(transformed_train, p_d)
 
+      # add column of one
+      transformed_train = np.append(transformed_train, np.full(transformed_train.shape[0], 1)[:, np.newaxis], axis=1)
+
       # un-regularized learner
-      # output_weights = np.dot(pinv(transformed_train), target_tr)
+      #output_weights = np.dot(pinv(transformed_train), target_tr)
 
       # regularized learner
-      hidden_layer_dim = self.hidden_layer.output_dim
-      output_weights = np.linalg.lstsq(transformed_train.T.dot(transformed_train) + lambda_ * np.identity(hidden_layer_dim), transformed_train.T.dot(target_tr), rcond=None)[0]
+      hidden_layer_dim = transformed_train.shape[1]
+      lst_learned = np.linalg.lstsq(transformed_train.T.dot(transformed_train) + lambda_ * np.identity(hidden_layer_dim), transformed_train.T.dot(target_tr), rcond=None)[0]
 
-      self.beta = output_weights.T
+      self.beta = lst_learned[:-1, :].T
+      self.beta_b = lst_learned[-1, :]
 
       error_tr = model_loss(self, self.loss, input_tr, target_tr)
 
