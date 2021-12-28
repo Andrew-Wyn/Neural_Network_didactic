@@ -1,5 +1,4 @@
 import numpy as np
-from numpy.linalg import pinv
 
 from mlprj.utility import compiled_check, model_loss
 

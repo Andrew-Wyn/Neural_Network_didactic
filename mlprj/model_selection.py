@@ -5,14 +5,12 @@ import os
 import sys
 
 from typing import List
+import numpy as np
+from multiprocessing import Pool, Manager
 
 from .losses import *
 from .regularizers import *
 
-import numpy as np
-import matplotlib.pyplot as plt
-
-from multiprocessing import Pool, Manager
 
 keys_training_params = ["epochs", "batch_size", "early_stopping"] 
 keys_training_params_direct = ["lambda_", "p_d", "p_dc"]
