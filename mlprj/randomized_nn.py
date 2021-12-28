@@ -114,7 +114,7 @@ class RandomizedNetwork:
 
       # regularized learner
       hidden_layer_dim = transformed_train.shape[1]
-      lst_learned = np.linalg.lstsq(transformed_train.T.dot(transformed_train) + lambda_ * np.identity(hidden_layer_dim), transformed_train.T.dot(target_tr), rcond=None)[0]
+      lst_learned = np.linalg.lstsq(transformed_train.T.dot(transformed_train) + lambda_ * np.identity(hidden_layer_dim), transformed_train.T.dot(target_tr), rcond=1e-6)[0]
 
       self.beta = lst_learned[:-1, :].T
       self.beta_b = lst_learned[-1, :]
