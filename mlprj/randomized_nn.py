@@ -145,14 +145,14 @@ class RandomizedLayer:
             initialization: (str) name of the initialization procedure
             initialization_parameters: (dict) hyperparameters
     """
-    def __init__(self, output_dim, activation="relu", initializer=GaussianInitializer()):
+    def __init__(self, output_dim, activation="relu"):
         self.input_dim = None # if it's not setted, not "compiled" the nn
         self.output_dim = output_dim
         self.weights_matrix = None
         self.bias = None
+        self.initializer = GaussianInitializer()
         
         self.activation = activation if isinstance(activation, ActivationFunction) else activation_functions[activation]
-        self.initializer = initializer if isinstance(initializer, Initializer) else initializer_functions[initializer]
 
     def initialize_weights(self, input_dim):
         """
