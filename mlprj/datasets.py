@@ -69,8 +69,6 @@ def read_cup_blind_test(preprocesser):
     ds = pd.read_csv(stream, sep=',', names=col_names)
     ds.set_index('Id', inplace=True)
 
-    ds = ds.sample(frac=1)
-
     ds = preprocesser.transform(ds)
     
     return ds

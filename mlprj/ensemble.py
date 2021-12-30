@@ -2,6 +2,9 @@ import numpy as np
 
 
 class Ensemble():
+    """
+        Ensemble model
+    """
     def __init__(self, models=[]):
         self.models = models
 
