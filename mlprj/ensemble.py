@@ -1,7 +1,7 @@
 import numpy as np
 
 
-class Ensamble():
+class Ensemble():
     def __init__(self, models=[]):
         self.models = models
 
