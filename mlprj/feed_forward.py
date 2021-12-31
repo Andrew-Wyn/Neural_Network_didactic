@@ -1,3 +1,4 @@
+from typing import List
 import numpy as np
 import math
 import pickle
@@ -14,15 +15,13 @@ from .optimizers import *
 class Network:
     """
         Class of the neural network
-        Attributes:
-            input_dim: (int) the dimension of the input
-            layers: (list) the layers
-            loss: the loss function
-            regularizer: the regularization parameter
-            optimizer: learning rate and Polnjak momentum parameters
-
     """
     def __init__(self, input_dim: int, layers=[]):
+      """
+        Args:
+            input_dim: (int) the dimension of the input
+            layers: (list) the layers
+      """
       self.input_dim = input_dim
       self.layers = layers
 
@@ -37,9 +36,9 @@ class Network:
       """
         Function that inizializes the neural network
         Args:
-            loss: selected loss function
-            regularizer: selected regularization method
-            optimizer: optimization procedure
+            loss (Loss): selected loss function
+            regularizer (Regularizer): selected regularization method
+            optimizer (Optimizer): optimization procedure
       """
 
       self.loss = loss if isinstance(loss, Loss) else loss_functions[loss]
@@ -58,7 +57,7 @@ class Network:
       """
         A forward step of the network
         Args:
-            net_input: (np.array) of initial net values
+            net_input: (np.ndarray) of initial net values
         Returns:
             value: network's output
       """
@@ -68,7 +67,14 @@ class Network:
       return value
 
     @compiled_check
-    def predict(self, inputs):
+    def predict(self, inputs: np.ndarray):
+      """
+        Perform a fast forward step over a list of input
+        Args:
+          inputs: (np.ndarray) array of inputs
+        Returns:
+          preds: network's outputs
+      """
       if len(np.array(inputs).shape) == 1:
         inputs = np.expand_dims(inputs, axis=0)
 
@@ -79,14 +85,14 @@ class Network:
 
       return np.array(preds)
 
-    def _bp_delta_weights(self, net_input: np.array, target: np.array): # return lista tuple (matrice delle derivate, vettore delle derivate biases)
+    def _bp_delta_weights(self, net_input: np.ndarray, target: np.ndarray): # return lista tuple (matrice delle derivate, vettore delle derivate biases)
       """
         Function that compute deltaW according to backpropagation algorithm
         Args:
             net_input: (np.array) initial net values
-            target: the target value
+            target: (np.ndarray) the target value
         Returns:
-            output: deltasW
+            deltas: list of deltas (tuple: (delta_w, delta_b)) over the layers
       """
       deltas = []
       # forward phase, calcolare gli output a tutti i livelli partendo dall'input (net, out)
@@ -100,11 +106,11 @@ class Network:
       
       return list(reversed(deltas)) # from input to output
 
-    def _apply_deltas(self, deltas):
+    def _apply_deltas(self, deltas:list):
       """
         Function that updates the weights according to W = W + deltaW
         Args:
-            deltas: deltaW
+            deltas: list of deltas
       """
       for i, (delta_w, delta_b) in enumerate(deltas):
         self.layers[i].weights_matrix += delta_w
@@ -112,9 +118,11 @@ class Network:
 
     def _regularize(self):
       """
-        Function that returns the regularization part of the deltaW update rule
-        Args:
-            regs: (list) weights and biases regularization part
+        Function that returns the regularization part of the delta
+        update rule w.r.t the weights of the network
+        
+        Returns:
+            regs: (list) list of tuple of weights and biases regularization part
       """
       regs = []
 
@@ -127,6 +135,15 @@ class Network:
 
     @compiled_check
     def save_model(self, path=None):
+      """
+        A method to save the model in a picklable
+        format and return the dictonary of the saved model
+
+        Args:
+          path: (str) if not None the path tells the location to save the model
+        Returns:
+          saved_model: (dict) model dictionary representation
+      """
       saved_model = {}
  
       saved_model["layers"] = copy.deepcopy(self.layers)
@@ -141,6 +158,10 @@ class Network:
       return saved_model
 
     def load_model_from_dict(self, saved_model):
+      """
+        Load a saved model in a dictionary format
+      """
+
       self.layers = saved_model["layers"]
       self.loss = saved_model["loss"]
       self.regularizer = saved_model["regularizer"]
@@ -149,6 +170,14 @@ class Network:
       self.compiled = True
 
     def load_model_from_file(self, path):
+      """
+        Load a saved model in a file on the file
+        system given a path name
+
+        Args:
+          path: (str) tells the location of the saved model
+      """
+
       saved_model = {}
 
       with open(path, "rb") as f:
@@ -159,14 +188,17 @@ class Network:
     @compiled_check
     def training(self, training, validation=None, epochs=500, batch_size=64, early_stopping = None, verbose=False, accuracy_curve=False):
       """
-        Function that performs neural network training phase, choosing the minibatch size if needed
+        Function that performs neural network training phase
         Args:
-            training: training set
-            validation: validation set
-            epochs: number of epochs
-            batch_size: batch size
+            training: (tuple) training set, training_x, training_y
+            validation: (tuple) validation set, validation_x, validation_y
+            epochs: (int) number of epochs
+            batch_size: (int) mini batch size
+            early_stopping: (int) number of epochs before early stopping
+            verbose: (boolean) if True print the epochs statistics
+            accuracy_curve: (boolean) if True compute the accuracy curve of the classification model over training and validation sets
         Returns:
-            history: training and validation error for each epoch
+            history: training and validation error and accuracy for each epoch
       """
 
       self.optimizer.clear()
@@ -278,31 +310,32 @@ class Network:
 
 class Layer:
     """
-        Class of the Layer
-        Attributes:
-            output_dim: (int) that indicate the dimension of the output
-            activation: (str) name of the activation function
-            initialization: (str) name of the initialization procedure
-            initialization_parameters: (dict) hyperparameters
+      Class of the Layer
     """
     def __init__(self, output_dim, activation, initializer):
-        self.input_dim = None
-        self.output_dim = output_dim
-        self.weights_matrix = None
-        self.bias = None
+      """
+        Args:
+          output_dim: (int) that indicate the dimensionality of the output
+          activation: (str | ActivationFunction) name of the activation function or the class itself
+          initializer: (str | Initializer) name of the initialization procedure or the class itself
+      """
+      self.input_dim = None
+      self.output_dim = output_dim
+      self.weights_matrix = None
+      self.bias = None
 
-        self.activation = activation if isinstance(activation, ActivationFunction) else activation_functions[activation]
-        self.initializer = initializer if isinstance(initializer, Initializer) else initializer_functions[initializer]
+      self.activation = activation if isinstance(activation, ActivationFunction) else activation_functions[activation]
+      self.initializer = initializer if isinstance(initializer, Initializer) else initializer_functions[initializer]
 
-        self._input = None
-        self._net = None
-        self._output = None
+      self._input = None
+      self._net = None
+      self._output = None
 
     def initialize_weights(self, input_dim):
       """
         Function that initializes the weights
         Args:
-            input_dim: (int) the dimension of the input
+            input_dim: (int) the dimension of the layer's input
       """
       self.input_dim = input_dim
       self.weights_matrix, self.bias = self.initializer.initialize(self.input_dim, self.output_dim)
@@ -311,7 +344,7 @@ class Layer:
       """
         Function that implement a layer forward step
         Args:
-            net_input: (np.array) initial net values
+            net_input: (np.ndarray) initial layer's values
         Returns:
             output: layer's output
       """
@@ -324,13 +357,13 @@ class Layer:
     def backpropagate_delta(self, upper_dE_dO): # return current layer
       # calculate dE_dNet for every node in the layer = dE_dO * fprime(net)
       """
-        Function that implement backpropagation algorithm
+        Function that backpropagate delta of this layer to the previous one
         Args:
-            upper_dE_dO: derivative of E with respect to the output O for the upper layer
+            upper_dE_dO: (np.ndarray) derivative of E with respect to the output O for the upper layer
         Returns:
-            current dE_do: the current derivative of E with respect to O,
-            gradient_w: the gradient with respect to W
-            gradient_b: the gradient with respect to the bias
+            current_dE_do: (np.ndarray) the current derivative of E with respect to O,
+            gradient_w: (np.ndarray) the gradient with respect to the weights
+            gradient_b: (np.ndarray) the gradient with respect to the bias
       """
       dE_dNet = upper_dE_dO * self.activation.derivative(self._net)
       gradient_w = np.transpose(dE_dNet[np.newaxis, :]) @ self._input[np.newaxis, :] 
