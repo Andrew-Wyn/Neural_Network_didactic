@@ -4,20 +4,45 @@ from abc import ABC, abstractmethod
 
 
 class ActivationFunction(ABC):
+    """
+        Abstract class of the activation functions
+    """
+
     def __init__(self):
         pass
 
     @abstractmethod
     def compute(self, x:np.ndarray):
+        """
+            Compute the activation function
+            
+            Args:
+                x: (np.ndarray) input of the activation function
+
+            Returns:
+                returns: (np.ndarray) output of the activation function
+        """
+
         pass
 
     @abstractmethod
     def derivative(self, x:np.ndarray):
+        """
+            Compute the derivative of the activation function
+            
+            Args:
+                x: (np.ndarray) input of the activation function
+
+            Returns:
+                returns: (np.ndarray) derivative of the activation function
+        """
+
         pass
 
 
 class Linear(ActivationFunction):
-    """ linear activation function """
+    """ Linear activation function """
+
     def compute(self, x: np.ndarray):
         return x
 
@@ -27,6 +52,7 @@ class Linear(ActivationFunction):
 
 class ReLU(ActivationFunction):
     """ ReLU activation function """
+
     def compute(self, x: np.ndarray):
         return np.maximum(x, 0)
 
@@ -39,6 +65,7 @@ class ReLU(ActivationFunction):
 
 class Sigmoid(ActivationFunction):
     """ Sigmoid activation function """
+
     def compute(self, x: np.ndarray):
         ones = np.ones(x.shape)
         return np.divide(ones, np.add(ones, np.exp(-x)))
@@ -49,6 +76,7 @@ class Sigmoid(ActivationFunction):
 
 class Tanh(ActivationFunction):
     """ Hyperbolic tangent function (TanH) """
+    
     def compute(self, x: np.ndarray):
         return np.tanh(x)
 
