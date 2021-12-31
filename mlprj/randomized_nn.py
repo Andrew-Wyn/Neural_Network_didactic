@@ -18,17 +18,17 @@ class RandomizedNetwork:
 
     """
     def __init__(self, input_dim: int, hidden_layer, output_dim, learning_bias=True):
-      self.input_dim = input_dim
-      self.output_dim = output_dim
-      self.hidden_layer = hidden_layer
-      self.beta = None
-      self.beta_b = None
+        self.input_dim = input_dim
+        self.output_dim = output_dim
+        self.hidden_layer = hidden_layer
+        self.beta = None
+        self.beta_b = None
 
-      self.learning_bias = learning_bias
+        self.learning_bias = learning_bias
 
-      # handled by compile
-      self.compiled = False
-      self.loss = None
+        # handled by compile
+        self.compiled = False
+        self.loss = None
     
     def compile(self, loss):
         """
@@ -59,89 +59,89 @@ class RandomizedNetwork:
         value = self.hidden_layer.forward_step(value)
 
         if self.learning_bias:
-          return np.matmul(self.beta, value) + self.beta_b
+            return np.matmul(self.beta, value) + self.beta_b
         else:
-          return np.matmul(self.beta, value)
+            return np.matmul(self.beta, value)
 
     @compiled_check
     def predict(self, inputs):
-      preds = []
+        preds = []
 
-      for net_input in inputs:
-        preds.append(self.forward_step(net_input))
+        for net_input in inputs:
+            preds.append(self.forward_step(net_input))
 
-      return np.array(preds)
+        return np.array(preds)
 
     def _bias_dropout(self, H, p_d, quantile=0.5):
-      mask = np.full(H.shape, 1)
+        mask = np.full(H.shape, 1)
 
-      threshold = np.quantile(H, quantile)
+        threshold = np.quantile(H, quantile)
 
-      locs = H < threshold
+        locs = H < threshold
 
-      subs = np.random.binomial(1, 1-p_d, np.sum(locs))
+        subs = np.random.binomial(1, 1-p_d, np.sum(locs))
 
-      mask[locs] = subs
+        mask[locs] = subs
 
-      return np.multiply(H, mask)
+        return np.multiply(H, mask)
 
     @compiled_check
     def direct_training(self, training, validation=None, lambda_=0, p_d=0, p_dc=0, verbose=False):
-      input_tr, target_tr = training
+        input_tr, target_tr = training
 
-      valid_split = False
+        valid_split = False
 
-      history = {"loss_tr": None, "loss_vl": -1}
+        history = {"loss_tr": None, "loss_vl": -1}
 
-      if validation:
-        input_vl, target_vl = validation
-        valid_split = True
+        if validation:
+            input_vl, target_vl = validation
+            valid_split = True
 
-      # Biased DropConnect
-      self.hidden_layer.drop_connect(p_dc)
+        # Biased DropConnect
+        self.hidden_layer.drop_connect(p_dc)
 
-      # transform input data to high dim rand layer
-      transformed_train = []
-      for sample in input_tr:
-        transformed_sample = self.hidden_layer.forward_step(sample)
-        transformed_train.append(transformed_sample)
+        # transform input data to high dim rand layer
+        transformed_train = []
+        for sample in input_tr:
+            transformed_sample = self.hidden_layer.forward_step(sample)
+            transformed_train.append(transformed_sample)
 
-      transformed_train = np.array(transformed_train)
+        transformed_train = np.array(transformed_train)
 
-      # Biased Dropout
-      transformed_train = self._bias_dropout(transformed_train, p_d)
+        # Biased Dropout
+        transformed_train = self._bias_dropout(transformed_train, p_d)
 
-      if self.learning_bias:
-        # add column of one
-        transformed_train = np.append(transformed_train, np.full(transformed_train.shape[0], 1)[:, np.newaxis], axis=1)
+        if self.learning_bias:
+            # add column of one
+            transformed_train = np.append(transformed_train, np.full(transformed_train.shape[0], 1)[:, np.newaxis], axis=1)
 
-      # un-regularized learner
-      #output_weights = np.dot(pinv(transformed_train), target_tr)
+        # un-regularized learner
+        #output_weights = np.dot(pinv(transformed_train), target_tr)
 
-      # regularized learner
-      hidden_layer_dim = transformed_train.shape[1]
-      lst_learned = np.linalg.lstsq(transformed_train.T.dot(transformed_train) + lambda_ * np.identity(hidden_layer_dim), transformed_train.T.dot(target_tr), rcond=1e-6)[0]
+        # regularized learner
+        hidden_layer_dim = transformed_train.shape[1]
+        lst_learned = np.linalg.lstsq(transformed_train.T.dot(transformed_train) + lambda_ * np.identity(hidden_layer_dim), transformed_train.T.dot(target_tr), rcond=1e-6)[0]
 
-      if self.learning_bias:
-        self.beta = lst_learned[:-1, :].T
-        self.beta_b = lst_learned[-1, :]
-      else:
-        self.beta = lst_learned.T
+        if self.learning_bias:
+            self.beta = lst_learned[:-1, :].T
+            self.beta_b = lst_learned[-1, :]
+        else:
+            self.beta = lst_learned.T
 
-      error_tr = model_loss(self, self.loss, input_tr, target_tr)
+        error_tr = model_loss(self, self.loss, input_tr, target_tr)
 
-      history["loss_tr"] = error_tr
+        history["loss_tr"] = error_tr
 
-      if valid_split:
-        error_vl = model_loss(self, self.loss, input_vl, target_vl)
-        if verbose:
-          print(f"error_tr = {error_tr} | error_vl = {error_vl}")
-        history["loss_vl"] = error_vl
-      else:
-        if verbose:
-          print(f"error_tr = {error_tr}")
+        if valid_split:
+            error_vl = model_loss(self, self.loss, input_vl, target_vl)
+            if verbose:
+                print(f"error_tr = {error_tr} | error_vl = {error_vl}")
+            history["loss_vl"] = error_vl
+        else:
+            if verbose:
+                print(f"error_tr = {error_tr}")
 
-      return history
+        return history
 
 
 class RandomizedLayer:
@@ -184,20 +184,20 @@ class RandomizedLayer:
         return self.activation.compute(net)
 
     def drop_connect(self, p_dc, quantile=0.5):
-      mask_w = np.full(self.weights_matrix.shape, 1)
-      mask_b = np.full(self.bias.shape, 1)
+        mask_w = np.full(self.weights_matrix.shape, 1)
+        mask_b = np.full(self.bias.shape, 1)
 
-      threshold_w = np.quantile(self.weights_matrix, quantile)
-      threshold_b = np.quantile(self.bias, quantile)
+        threshold_w = np.quantile(self.weights_matrix, quantile)
+        threshold_b = np.quantile(self.bias, quantile)
 
-      locs_w = self.weights_matrix < threshold_w
-      locs_b = self.bias < threshold_b
+        locs_w = self.weights_matrix < threshold_w
+        locs_b = self.bias < threshold_b
 
-      subs_w = np.random.binomial(1, 1-p_dc, np.sum(locs_w))
-      subs_b = np.random.binomial(1, 1-p_dc, np.sum(locs_b))
+        subs_w = np.random.binomial(1, 1-p_dc, np.sum(locs_w))
+        subs_b = np.random.binomial(1, 1-p_dc, np.sum(locs_b))
 
-      mask_w[locs_w] = subs_w
-      mask_b[locs_b] = subs_b
+        mask_w[locs_w] = subs_w
+        mask_b[locs_b] = subs_b
 
-      self.weights_matrix = np.multiply(self.weights_matrix, mask_w)
-      self.bias = np.multiply(self.bias, mask_b)
+        self.weights_matrix = np.multiply(self.weights_matrix, mask_w)
+        self.bias = np.multiply(self.bias, mask_b)
