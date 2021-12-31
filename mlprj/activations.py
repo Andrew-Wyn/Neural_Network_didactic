@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 
 class ActivationFunction(ABC):
     """
-        Abstract class of the activation functions
+    Abstract class of the activation functions
     """
 
     def __init__(self):
@@ -14,13 +14,13 @@ class ActivationFunction(ABC):
     @abstractmethod
     def compute(self, x:np.ndarray):
         """
-            Compute the activation function
-            
-            Args:
-                x: (np.ndarray) input of the activation function
+        Compute the activation function
+        
+        Args:
+            x: (np.ndarray) input of the activation function
 
-            Returns:
-                returns: (np.ndarray) output of the activation function
+        Returns:
+            returns: (np.ndarray) output of the activation function
         """
 
         pass
@@ -76,7 +76,7 @@ class Sigmoid(ActivationFunction):
 
 class Tanh(ActivationFunction):
     """ Hyperbolic tangent function (TanH) """
-    
+
     def compute(self, x: np.ndarray):
         return np.tanh(x)
 

@@ -3,11 +3,25 @@ import numpy as np
 from abc import ABC, abstractmethod
 
 class Initializer(ABC):
+    """
+    Abstract class of the initializer functions
+    """
+
     def __init__(self):
         pass
     
     @abstractmethod
-    def initialize(self):
+    def initialize(self, input_dim, output_dim):
+        """
+        Compute the initialization
+        
+        Args:
+            input_dim: (int) input dimension of the layer
+            output_dim: (int) output dimension of the 
+        Returns:
+            returns: the tuple of weights and biases picked in a random fashion
+        """
+        
         pass
 
  

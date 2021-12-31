@@ -14,23 +14,23 @@ from .optimizers import *
 
 class Network:
     """
-        Class of the neural network
+    Class of the neural network
     """
     def __init__(self, input_dim: int, layers=[]):
-      """
+        """
         Args:
             input_dim: (int) the dimension of the input
             layers: (list) the layers
-      """
-      self.input_dim = input_dim
-      self.layers = layers
+        """
+        self.input_dim = input_dim
+        self.layers = layers
 
-      # handled by compile
-      self.compiled = False
-      self.loss = None
-      self.regularizer = None
+        # handled by compile
+        self.compiled = False
+        self.loss = None
+        self.regularizer = None
 
-      self._tollerance = 1e-5
+        self._tollerance = 1e-5
     
     def compile(self, loss=None, regularizer=None, optimizer=None):
         """
