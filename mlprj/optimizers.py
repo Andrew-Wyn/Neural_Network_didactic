@@ -3,15 +3,28 @@ from abc import ABC
 from abc import ABC, abstractmethod
 
 class Optimizer(ABC):
+    """
+    Abstract class of optimizers
+    """
     def __init__(self):
         pass
     
     @abstractmethod
     def clear(self):
+        """
+        Clear method necessary to clean some attributes that have to be reinitialized
+        between a training phase and another
+        """
         raise NotImplementedError()
 
     @abstractmethod
     def optimize(self):
+        """
+        Method that given deltas optimized it wrt regularizations and other optimizations techniques
+
+        Returns:
+            deltas: (list) list of tuples (delta weights, delta biases) of optimized deltas
+        """
         raise NotImplementedError()
 
 
