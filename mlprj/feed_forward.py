@@ -224,7 +224,7 @@ class Network:
         if type(batch_size) is str and batch_size == "full":
             batch_size = l
         elif type(batch_size) is str and batch_size != "full":
-            raise Exception()
+            raise TypeError("if the batch_size is str have to be 'full'")
         elif batch_size > l or batch_size <= 0:
             batch_size = l
 
