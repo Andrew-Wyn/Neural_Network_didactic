@@ -4,16 +4,38 @@ import numpy as np
 from abc import ABC, abstractmethod
 
 class Loss(ABC):
+    """
+    Abstract class implementing Loss functions
+    """
 
     def __init__(self):
         pass
     
     @abstractmethod
     def compute(self, target, output):
+        """
+        Compute the loss function
+
+        Args:
+            target: (np.ndarray) target values
+            output: (np.ndarray) output values returned from a model
+
+        Returns:
+            ret: (np.ndarray) the loss
+        """
         raise NotImplementedError()
 
     @abstractmethod
     def derivative(self, target, output):
+        """
+        Compute the derivative of the loss function
+
+        Args:
+            target: (np.ndarray) target values
+            output: (np.ndarray) output values returned from a model
+        Returns:
+            ret: (np.ndarray) the derivative of the loss
+        """
         raise NotImplementedError()
 
 
