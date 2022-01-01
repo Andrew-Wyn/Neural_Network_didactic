@@ -4,12 +4,23 @@ import numpy as np
 from abc import ABC, abstractmethod
 
 class Regularizer(ABC):
+    """
+    Abstract regularizer functions
+    """
 
     def __init__(self):
         pass
 
     @abstractmethod
     def regularize(self, weights):
+        """
+        Regularize weight and return the value associated to the deltas wrt the weights itself
+
+        Args:
+            weights: (np.ndarray) weights
+        Returns:
+            ret: (np.ndarray) deltas of the regularized weights
+        """
         raise NotImplementedError()
 
 

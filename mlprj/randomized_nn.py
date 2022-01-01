@@ -8,16 +8,16 @@ from .losses import *
 
 class RandomizedNetwork:
     """
-        Class of the neural network
-        Attributes:
-            input_dim: (int) the dimension of the input
-            layers: (list) the layers
-            loss: the loss function
-            regularizer: the regularization parameter
-            optimizer: learning rate and Polnjak momentum parameters
-
+        Class of the randomized neural network
     """
-    def __init__(self, input_dim: int, hidden_layer, output_dim, learning_bias=True):
+    def __init__(self, input_dim, hidden_layer, output_dim, learning_bias=True):
+        """
+        Args:
+            input_dim: (int) dimension of the input
+            hidden_layer: (RandomizedLayer) hidden layer
+            output_dim: (int) dimension of the output
+            learning_bias: (boolean) flag that indicates if the network will learn the bias in the last layer
+        """
         self.input_dim = input_dim
         self.output_dim = output_dim
         self.hidden_layer = hidden_layer
@@ -34,9 +34,7 @@ class RandomizedNetwork:
         """
         Function that inizializes the neural network
         Args:
-            loss: selected loss function
-            regularizer: selected regularization method
-            optimizer: optimization procedure
+            loss: (Loss) loss function
         """
 
         self.loss = loss if isinstance(loss, Loss) else loss_functions[loss]
@@ -47,11 +45,11 @@ class RandomizedNetwork:
         self.compiled = True
 
     @compiled_check
-    def forward_step(self, net_input: np.ndarray):
+    def forward_step(self, net_input):
         """
         A forward step of the network
         Args:
-            net_input: (np.array) of initial net values
+            net_input: (np.ndarray) of initial net values
         Returns:
             value: network's output
         """
@@ -65,6 +63,13 @@ class RandomizedNetwork:
 
     @compiled_check
     def predict(self, inputs):
+        """
+        Perform a fast forward step over a list of input
+        Args:
+            inputs: (np.ndarray) array of inputs
+        Returns:
+            preds: network's outputs
+        """
         preds = []
 
         for net_input in inputs:
@@ -73,6 +78,15 @@ class RandomizedNetwork:
         return np.array(preds)
 
     def _bias_dropout(self, H, p_d, quantile=0.5):
+        """
+        Modify the hidden layer outputs setting to 0 some values wrt a bernoulli distribution
+        Args:
+            H: (np.ndarray) matrix of the output of the hidden layer
+            p_d: (double) bernoulli probability
+            quantile: (double) the elements which are under the quantile are affected by the dropout
+        Returns:
+            modified_H: (np.ndarray) regularized H
+        """
         mask = np.full(H.shape, 1)
 
         threshold = np.quantile(H, quantile)
@@ -87,6 +101,18 @@ class RandomizedNetwork:
 
     @compiled_check
     def direct_training(self, training, validation=None, lambda_=0, p_d=0, p_dc=0, verbose=False):
+        """
+        Direct training function, consist in a least square problem solver.
+        Args:
+            training: (tuple) training_X and training_y
+            validation: (tuple) valid_X, valid_y
+            lambda_: (double) parameter used to regularize the least square solver
+            p_d: (double) dropout probability
+            p_dc: (double) dropconnect probability
+            verbose: (boolean) flag that if is setted print the training and validation errors
+        Returns:
+            history: training and validation error for each epoch
+        """
         input_tr, target_tr = training
 
         valid_split = False
@@ -146,15 +172,15 @@ class RandomizedNetwork:
 
 class RandomizedLayer:
     """
-        Class of the Layer
-        Attributes:
-            output_dim: (int) that indicate the dimension of the output
-            activation: (str) name of the activation function
-            initialization: (str) name of the initialization procedure
-            initialization_parameters: (dict) hyperparameters
+    Class of the Randomized Layer
     """
     def __init__(self, output_dim, activation="relu"):
-        self.input_dim = None # if it's not setted, not "compiled" the nn
+        """
+        Args:
+            output_dim: (int) dimension of the output
+            activation: (str | ActivationFunction) activation function
+        """
+        self.input_dim = None
         self.output_dim = output_dim
         self.weights_matrix = None
         self.bias = None
@@ -175,7 +201,7 @@ class RandomizedLayer:
         """
         Function that implement a layer forward step
         Args:
-            net_input: (np.array) initial net values
+            net_input: (np.ndarray) initial net values
         Returns:
             output: layer's output
         """
@@ -184,6 +210,14 @@ class RandomizedLayer:
         return self.activation.compute(net)
 
     def drop_connect(self, p_dc, quantile=0.5):
+        """
+        Method that implement the drop connect regularization, set to 0
+        the weight that connect the input to the hidden layer
+
+        Args:
+            p_dc: (double) bernoulli probability used to regularize
+            quantile: (double) the elements which are under the quantile are affected by the dropout
+        """
         mask_w = np.full(self.weights_matrix.shape, 1)
         mask_b = np.full(self.bias.shape, 1)
 
